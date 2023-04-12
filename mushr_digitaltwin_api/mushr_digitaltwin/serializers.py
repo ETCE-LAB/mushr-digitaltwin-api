@@ -38,21 +38,22 @@ class MushRIsLocatedAtRelationshipSerializer(MushRRelationshipSerializer):
     start = serializers.DateTimeField(
         help_text="""The start time of the time period during which
         the MushR Asset is located at the Location""",
-        read_only=True)
+        read_only=False)
 
     end = serializers.DateTimeField(
         help_text="""The end time of the time period during which
         the MushR Asset is located at the Location""",
-        read_only=True)
+        read_only=False,
+        required=False)
 
     startBy = serializers.CharField(
-        required=True,
+        required=False,
         help_text="""The user who set the start
         of this location period""")
 
-    startBy = serializers.CharField(
-        required=True,
-        help_text="""The user who set the start
+    endBy = serializers.CharField(
+        required=False,
+        help_text="""The user who set the end
         of this location period""")
 
 
@@ -90,7 +91,7 @@ class MyceliumSampleSerializer(MushRNodeSerializer):
     dateCreated = serializers.DateTimeField(
         help_text="""The timestamp at which
         it was created""",
-    read_only=True)
+        read_only=False)
     weight = serializers.FloatField(required=True,
                                     help_text="""Weight of the Mycelium strain
                                     sample""")
@@ -107,7 +108,8 @@ class SpawnSerializer(MyceliumSampleSerializer):
     dateSterilized = serializers.DateTimeField(
         help_text="""The timestamp at which
         it was sterilized""",
-    read_only=True)
+        read_only=False,
+        required=False)
     createdBy = serializers.CharField(
         help_text="""The user who created
         this node""")
@@ -149,10 +151,11 @@ class SpawnContainerSerializer(MushRNodeSerializer):
     dateCreated = serializers.DateTimeField(
         help_text="""The timestamp at which
         it was created""",
-        read_only=True)
+        read_only=False)
     createdBy = serializers.CharField(
         help_text="""The user who created
-        this node""")
+        this node""",
+        required=False)
     is_located_at = MushRTraversalSerializer(
         read_only=True,
         child=MushRIsLocatedAtRelationshipSerializer())
@@ -193,7 +196,7 @@ class SubstrateContainerSerializer(MushRNodeSerializer):
     dateCreated = serializers.DateTimeField(
         help_text="""The timestamp at which
         it was created""",
-        read_only=True)
+        read_only=False)
     
     is_located_at = MushRTraversalSerializer(
         read_only=True,
@@ -233,7 +236,8 @@ class SubstrateSerializer(MushRNodeSerializer):
     dateCreated = serializers.DateTimeField(
         help_text="""The timestamp at which
           it was created""",
-        read_only=True)
+        read_only=False,
+        required=False)
     createdBy = serializers.CharField(
         help_text="""The user who
           created this node""",
@@ -252,7 +256,7 @@ class FruitingHoleSerializer(MushRNodeSerializer):
     dateCreated = serializers.DateTimeField(
         help_text="""The timestamp at which
         it was created""",
-        read_only=True)
+        read_only=False)
 
     is_part_of = MushRTraversalSerializer(
         read_only=True,
@@ -272,8 +276,8 @@ class MushroomHarvestSerializer(MushRNodeSerializer):
     dateHarvested = serializers.DateTimeField(
         help_text="""The timestamp at which
         it was harvested""",
-    read_only=True)
-    weight = serializer.FloatField(
+        read_only=False)
+    weight = serializers.FloatField(
         required=True,
         help_text="""The weight (in grams) of the mushroom harvest""")
 
@@ -300,4 +304,4 @@ class SensorSerializer(MushRNodeSerializer):
     dateCreated = serializers.DateTimeField(
         help_text="""The Timestamp at which
         it was created""",
-        read_only=True)
+        read_only=False)
