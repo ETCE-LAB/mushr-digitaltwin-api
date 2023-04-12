@@ -7,6 +7,55 @@ class MushRUIDSerializer(serializers.CharField):
     def to_representation(self, instance):
         return (super(MushRUIDSerializer, self).to_representation(instance.uid))
 
+
+class MushRRelationshipSerializer(serializers.Serializer):
+    def to_representation(self, instance):
+        instance.start_node = instance.start_node()
+        instance.end_node = instance.end_node()
+        return (super(MushRRelationshipSerializer,
+                      self).to_representation(instance))
+ 
+    id = serializers.IntegerField(
+        read_only=True,
+        help_text="""Neo4j Internal ID""")
+
+    start_node = MushRUIDSerializer()
+    end_node = MushRUIDSerializer()
+
+class MushRTraversalSerializer(serializers.ListField):
+    def to_representation(self, instance):
+        traversal = instance._new_traversal()
+        instance = [instance.relationship(node) for node in instance.all()]
+        return (super(MushRTraversalSerializer,
+                      self).to_representation(instance))
+
+
+class MushRIsDescendentOfRelationshipSerializer(MushRRelationshipSerializer):
+    pass
+    
+
+class MushRIsLocatedAtRelationshipSerializer(MushRRelationshipSerializer):
+    start = serializers.DateTimeField(
+        help_text="""The start time of the time period during which
+        the MushR Asset is located at the Location""",
+        read_only=True)
+
+    end = serializers.DateTimeField(
+        help_text="""The end time of the time period during which
+        the MushR Asset is located at the Location""",
+        read_only=True)
+
+    startBy = serializers.CharField(
+        required=True,
+        help_text="""The user who set the start
+        of this location period""")
+
+    startBy = serializers.CharField(
+        required=True,
+        help_text="""The user who set the start
+        of this location period""")
+
+
 class MushRNodeSerializer(serializers.Serializer):
     id = serializers.IntegerField(
         read_only=True,
@@ -39,12 +88,6 @@ class MyceliumSampleSerializer(MushRNodeSerializer):
                                     sample""")
 
 class SpawnSerializer(MyceliumSampleSerializer):
-    def to_representation(self, instance):
-        instance.is_innoculated_from = instance.is_innoculated_from.all()
-        instance.is_contained_by = instance.is_contained_by.all()
-        return (super(SpawnSerializer,
-                      self).to_representation(instance))
-
     composition = serializers.CharField(
         required=True,
         help_text="""A description of what
@@ -60,15 +103,12 @@ class SpawnSerializer(MyceliumSampleSerializer):
     createdBy = serializers.CharField(
         help_text="""The user who created
         this node""")
-    is_innoculated_from = serializers.ListField(
+    is_innoculated_from = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of MyceliumSample innoculant"""))
-    is_contained_by = serializers.ListField(
+        child=MushRIsDescendentOfRelationshipSerializer())
+    is_contained_by = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of SpawnContainer that the
-            Spawn is/was contained by (if it exists)"""))
+        child=MushRIsLocatedAtRelationshipSerializer())
 
 
 class StrainSerializer(MyceliumSampleSerializer):
@@ -83,16 +123,13 @@ class StrainSerializer(MyceliumSampleSerializer):
                                                mushrooms of this species are
                                                commonly referred""")
 
-    is_located_at = serializers.ListField(
-        help_text="""Location History""",
+    is_located_at = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of a Location"""))
+        child=MushRIsLocatedAtRelationshipSerializer())
 
 
 class SpawnContainerSerializer(MushRNodeSerializer):
     def to_representation(self, instance):
-        instance.is_located_at = instance.is_located_at.all()
         instance.currentSpawn = instance.current_spawn()
         instance.currentLocation = instance.current_location()
         return (super(SpawnContainerSerializer,
@@ -108,11 +145,9 @@ class SpawnContainerSerializer(MushRNodeSerializer):
     createdBy = serializers.CharField(
         help_text="""The user who created
         this node""")
-    is_located_at = serializers.ListField(
-        help_text="""Location History""",
+    is_located_at = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of a Location"""))
+        child=MushRIsLocatedAtRelationshipSerializer())
 
     currentSpawn = serializers.ListField(
         help_text="""Currently occupied Spawn""",
@@ -129,7 +164,6 @@ class SpawnContainerSerializer(MushRNodeSerializer):
 
 class SubstrateContainerSerializer(MushRNodeSerializer):
     def to_representation(self, instance):
-        instance.is_located_at = instance.is_located_at.all()
         instance.currentSubstrate = instance.current_substrate()
         instance.currentLocation = instance.current_location()
         return (super(SubstrateContainerSerializer,
@@ -153,11 +187,9 @@ class SubstrateContainerSerializer(MushRNodeSerializer):
         it was created""",
         read_only=True)
     
-    is_located_at = serializers.ListField(
-        help_text="""Location History""",
+    is_located_at = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of a Location"""))
+        child=MushRIsLocatedAtRelationshipSerializer())
 
     currentSubstrate = serializers.ListField(
         help_text="""Currently occupied Substrate""",
@@ -175,13 +207,6 @@ class SubstrateContainerSerializer(MushRNodeSerializer):
 
 
 class SubstrateSerializer(MushRNodeSerializer):
-    
-    def to_representation(self, instance):
-        instance.is_innoculated_from = instance.is_innoculated_from.all()
-        instance.is_contained_by = instance.is_contained_by.all()
-        return (super(SubstrateSerializer,
-                      self).to_representation(instance))
-
     weight = serializers.FloatField(
         required=True,
         min_value=0,
@@ -206,77 +231,47 @@ class SubstrateSerializer(MushRNodeSerializer):
           created this node""",
         required=True)      
 
-    is_innoculated_from = serializers.ListField(
+    is_innoculated_from = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of MyceliumSample innoculant"""))
+        child=MushRIsDescendentOfRelationshipSerializer())
 
-    is_contained_by = serializers.ListField(
+    is_contained_by = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of SubstrateContainer that the
-            Substrate is/was contained by (if it exists)"""))
+        child=MushRIsLocatedAtRelationshipSerializer())
 
 
 class FruitingHoleSerializer(MushRNodeSerializer):
-    def to_representation(self, instance):
-        instance.is_part_of = instance.is_part_of.all()
-        return (super(FruitingHoleSerializer,
-                      self).to_representation(instance))
-
     dateCreated = serializers.DateTimeField(
         help_text="""The timestamp at which
         it was created""",
         read_only=True)
 
-    is_part_of = serializers.ListField(
+    is_part_of = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of SubstrateContainer that the
-            FruitingHole is a part of (if it exists)"""))
+        child=MushRIsLocatedAtRelationshipSerializer())
 
 
 class FlushSerializer(MushRNodeSerializer):
-    def to_representation(self, instance):
-        instance.fruits_from = instance.fruits_from.all()
-        instance.fruits_through = instance.fruits_through.all()
-        return (super(FlushSerializer,
-                      self).to_representation(instance))
-
-    fruits_from = serializers.ListField(
+    fruits_from = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of Substrate that the
-            Flush fruits from"""))
+        child=MushRIsDescendentOfRelationshipSerializer())
 
-    fruits_through = serializers.ListField(
+    fruits_through = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of FruitingHole that the
-            Flush fruits through"""))
+        child=MushRIsLocatedAtRelationshipSerializer())
 
 class MushroomHarvestSerializer(MushRNodeSerializer):
-    def to_representation(self, instance):
-        instance.is_harvested_from = instance.is_harvested_from.all()
-        return (super(MushroomHarvestSerializer,
-                      self).to_representation(instance))
     dateHarvested = serializers.DateTimeField(
         help_text="""The timestamp at which
         it was harvested""",
     read_only=True)
 
-    is_harvested_from = serializers.ListField(
+    is_harvested_from = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of Flush that the
-            MushroomHarvest is harvested from"""))
-
+        child=MushRIsDescendentOfRelationshipSerializer())
+    
 
 class SensorSerializer(MushRNodeSerializer):
-    def to_representation(self, instance):
-        instance.is_harvested_from = instance.is_harvested_from.all()
-        return (super(SensorSerializer,
-                      self).to_representation(instance))
 
     url = serializers.CharField(
         required=True,
@@ -287,12 +282,9 @@ class SensorSerializer(MushRNodeSerializer):
         required=True,
         help_text="""The type/name of the sensor""")
 
-    is_sensing_in = serializers.ListField(
-        help_text="""Sensing History""",
+    is_sensing_in = MushRTraversalSerializer(
         read_only=True,
-        child=MushRUIDSerializer(
-            help_text="""MushR UID of GrowChamber that the
-            Sensor is sensing in"""))
+        child=MushRIsLocatedAtRelationshipSerializer())
 
     dateCreated = serializers.DateTimeField(
         help_text="""The Timestamp at which
