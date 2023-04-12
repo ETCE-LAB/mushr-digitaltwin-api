@@ -94,6 +94,16 @@ class MushRInstance(APIView):
         serializer = MushRInstance.serializer_map[self.mushr_model](node)
         return Response(serializer.data)
 
+    def put(self, request, uid, **kwargs):
+        node = self.get_node(uid)
+        serializer = MushRInstance.serializer_map[self.mushr_model](node,
+                                                                    data=request.data)
+        if serializer.is_valid(raise_exception=False):
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors, status=400)
+
 
 class LocationUIDs(MushRNodeUIDs):
     @property

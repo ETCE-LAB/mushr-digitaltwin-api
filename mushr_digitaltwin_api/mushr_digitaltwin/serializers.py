@@ -61,22 +61,30 @@ class MushRNodeSerializer(serializers.Serializer):
         read_only=True,
         help_text="""Neo4j Internal ID""")
     labels = serializers.ListField(
+        read_only=True,
         child=serializers.CharField(
             help_text="""Neo4j Database Label"""))
     uid = serializers.CharField(
         help_text="""MushR Internal Node UID""",
         read_only=True)
 
+    def update(self, instance, validated_data):
+        for key, value in validated_data.items():
+            setattr(instance, key, validated_data.get(key))
+        instance.save()
+        return instance
+
 
 class LocationSerializer(MushRNodeSerializer):
     description = serializers.CharField(
-        required=True,
+        required=False,
+        read_only=False,
         help_text="""""")
     dateCreated = serializers.DateTimeField(
+        required=False,
         help_text="""The timestamp at which
         it was created""",
-    read_only=True)
-
+        read_only=False)
 
 class MyceliumSampleSerializer(MushRNodeSerializer):
     dateCreated = serializers.DateTimeField(
@@ -265,6 +273,9 @@ class MushroomHarvestSerializer(MushRNodeSerializer):
         help_text="""The timestamp at which
         it was harvested""",
     read_only=True)
+    weight = serializer.FloatField(
+        required=True,
+        help_text="""The weight (in grams) of the mushroom harvest""")
 
     is_harvested_from = MushRTraversalSerializer(
         read_only=True,
