@@ -26,10 +26,9 @@ from mushr_digitaltwin.serializers import (LocationSerializer,
                                            MushRIsDescendentOfRelationshipSerializer)
 from neomodel import db
 import datetime
-from django.http import Http404, HttpResponseBadRequest
+from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
 
 
 class MushRNodeUIDs(APIView):
@@ -56,9 +55,11 @@ class MushRNodeUIDs(APIView):
             if self.mushr_model == Flush:
                 instances = Flush.fruiting_flushes(timestamp=timestamp)
             elif self.mushr_model == MushroomHarvest:
-                instances = self.mushr_model.nodes.filter(dateHarvested__lte=timestamp)
+                instances = self.mushr_model.nodes.filter(
+                    dateHarvested__lte=timestamp)
             else:
-                instances = self.mushr_model.nodes.filter(dateCreated__lte=timestamp)
+                instances = self.mushr_model.nodes.filter(
+                    dateCreated__lte=timestamp)
             for instance in instances:
                 yield instance.uid
 
@@ -67,6 +68,7 @@ class MushRNodeUIDs(APIView):
 
     def get(self, request, timestamp=None):
         return Response(self.yield_uids(timestamp))
+
 
 class MushRRelationshipInstance(APIView):
     """Retrieve/update instance of a MushR Relationship"""
@@ -85,15 +87,15 @@ class MushRRelationshipInstance(APIView):
     }
 
     def get_relationship(self, id):
-        """Get a relationship with id
+        """Get a relationship with `id`
 
         """
         try:
             results, meta = db.cypher_query(
-                "MATCH ()-[r]->() where id(r)=$id return r", {"id":id},
+                "MATCH ()-[r]->() where id(r)=$id return r", {"id": id},
                 resolve_objects=True)
             return results[0][0]
-            
+
         except IndexError:
             raise Http404
 
@@ -116,6 +118,7 @@ class MushRRelationshipInstance(APIView):
         else:
             return Response(serializer.errors, status=400)
 
+
 class MushRNodeBaseAPIView(APIView):
     @property
     def mushr_model(self):
@@ -137,9 +140,11 @@ class MushRNodeBaseAPIView(APIView):
         MushroomHarvest: MushroomHarvestSerializer,
         Sensor: SensorSerializer}
 
+
 class MushRNodeCreationAPIView(MushRNodeBaseAPIView):
     def put(self, request, **kwargs):
-        serializer = MushRInstance.serializer_map[self.mushr_model](data=request.data)
+        serializer = MushRInstance.serializer_map[self.mushr_model
+                                                  ](data=request.data)
         if serializer.is_valid(raise_exception=False):
             serializer.save()
             return Response(serializer.data)
@@ -164,9 +169,10 @@ class MushRInstance(MushRNodeBaseAPIView):
 
     def post(self, request, uid, **kwargs):
         node = self.get_node(uid)
-        serializer = MushRInstance.serializer_map[self.mushr_model](node,
-                                                                    data=request.data,
-                                                                    partial=True)
+        serializer = MushRInstance.serializer_map[self.mushr_model
+                                                  ](node,
+                                                    data=request.data,
+                                                    partial=True)
         if serializer.is_valid(raise_exception=False):
             serializer.save()
             return Response(serializer.data)
@@ -179,6 +185,7 @@ class LocationUIDs(MushRNodeUIDs):
     def mushr_model(self):
         return Location
 
+
 class LocationInstance(MushRInstance):
     @property
     def mushr_model(self):
@@ -190,20 +197,24 @@ class GrowChamberUIDs(MushRNodeUIDs):
     def mushr_model(self):
         return GrowChamber
 
+
 class GrowChamberInstance(MushRInstance):
     @property
     def mushr_model(self):
         return GrowChamber
+
 
 class CreateGrowChamberInstance(MushRNodeCreationAPIView):
     @property
     def mushr_model(self):
         return GrowChamber
 
+    
 class StorageLocationUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return StorageLocation
+
 
 class StorageLocationInstance(MushRInstance):
     @property
@@ -222,98 +233,153 @@ class MyceliumSampleUIDs(MushRNodeUIDs):
     def mushr_model(self):
         return MyceliumSample
 
+
 class MyceliumSampleInstance(MushRInstance):
     @property
     def mushr_model(self):
         return MyceliumSample
+
 
 class SpawnUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return Spawn
 
+
 class SpawnInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Spawn
+
 
 class StrainUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return Strain
 
+
 class StrainInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Strain
+
+
+class CreateStrainInstance(MushRNodeCreationAPIView):
+    @property
+    def mushr_model(self):
+        return Strain
+
 
 class SpawnContainerUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return SpawnContainer
 
+
 class SpawnContainerInstance(MushRInstance):
     @property
     def mushr_model(self):
         return SpawnContainer
+
+
+class CreateSpawnContainerInstance(MushRNodeCreationAPIView):
+    @property
+    def mushr_model(self):
+        return SpawnContainer
+
 
 class SubstrateContainerUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return SubstrateContainer
 
+
 class SubstrateContainerInstance(MushRInstance):
     @property
     def mushr_model(self):
         return SubstrateContainer
+
+
+class CreateSubstrateContainerInstance(MushRNodeBaseAPIView):
+    @property
+    def mushr_model(self):
+        return SubstrateContainer
+
+    def put(self, request, num_fruiting_holes, **kwargs):
+        """Create a SubstrateContainer and automatically create its
+        FruitingHoles.
+
+        `num_fruiting_holes`: a positive integer
+
+        """
+        # Create a temporary serializer to validate attributes of the
+        # substrate_container
+        serializer = SubstrateContainerSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=False):
+            substrate_container = SubstrateContainer.create_with_fh(
+                serializer.validated_data, num_fruiting_holes)
+            # Initialize the "real" serializer
+            serializer = SubstrateContainerSerializer(substrate_container)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors, status=400)
+
 
 class SubstrateUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return Substrate
 
+
 class SubstrateInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Substrate
+
 
 class FruitingHoleUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return FruitingHole
 
+
 class FruitingHoleInstance(MushRInstance):
     @property
     def mushr_model(self):
         return FruitingHole
+
 
 class FlushUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return Flush
 
+
 class FlushInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Flush
+
 
 class MushroomHarvestUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return MushroomHarvest
 
+
 class MushroomHarvestInstance(MushRInstance):
     @property
     def mushr_model(self):
         return MushroomHarvest
+
 
 class SensorUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return Sensor
 
+
 class SensorInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Sensor
-

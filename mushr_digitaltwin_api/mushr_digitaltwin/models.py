@@ -2,11 +2,9 @@
 
 """
 
-from neomodel import config as neo4jconfig
-import configparser
 import datetime
 from django_neomodel import DjangoNode
-from neomodel import (StructuredNode, StructuredRel, RelationshipTo)
+from neomodel import (StructuredRel, RelationshipTo)
 from neomodel import (RelationshipManager, OUTGOING, INCOMING)
 from neomodel import (StringProperty, UniqueIdProperty,
                       DateTimeProperty, FloatProperty)
@@ -57,12 +55,18 @@ def custom_rel_merge_helper(lhs, rhs,
 
     if relation_properties:
         rel_props = ' {{{0}}}'.format(', '.join(
-            ['{0}: {1}'.format(key, value) for key, value in relation_properties.items() if value is not None]))
+            ['{0}: {1}'.format(key, value)
+             for key, value in relation_properties.items()
+             if value is not None]))
+
         # if None in relation_properties.values():
         #     rel_none_props = ' ON CREATE SET {0} ON MATCH SET {0}'.format(
         #         ', '.join(
-        #             ['{0}.{1}={2}'.format(ident, key, '${!s}'.format(key)) for key, value in relation_properties.items() if value is None])
+        #             ['{0}.{1}={2}'.format(ident, key, '${!s}'.format(key))
+        #              for key, value in relation_properties.items()
+        #              if value is None])
         #     )
+
     # direct, relation_type=None is unspecified, relation_type
     if relation_type is None:
         stmt = stmt.format('')
@@ -71,13 +75,13 @@ def custom_rel_merge_helper(lhs, rhs,
         stmt = stmt.format('[*]')
     else:
         # explicit relation_type
-        stmt = stmt.format('[{0}:`{1}`{2}]'.format(ident, relation_type, rel_props))
+        stmt = stmt.format('[{0}:`{1}`{2}]'.format(ident,
+                                                   relation_type, rel_props))
 
     return "({0}){1}({2}){3}".format(lhs, stmt, rhs, rel_none_props)
 
 
 class CustomRelationshipManager(RelationshipManager):
-
 
     def connect_new(self, node, properties=None):
         """
@@ -116,7 +120,8 @@ class CustomRelationshipManager(RelationshipManager):
                 tmp.pre_save()
 
         new_rel = custom_rel_merge_helper(lhs='us', rhs='them', ident='r',
-                                          relation_properties=rp, **self.definition)
+                                          relation_properties=rp,
+                                          **self.definition)
         q = "MATCH (them), (us) WHERE id(them)=$them and id(us)=$self " \
             "CREATE" + new_rel
 
@@ -298,13 +303,13 @@ class SpawnContainer(DjangoNode):
     """
     uid = UniqueIdProperty()
     name = StringProperty(unique_index=True,
-                          required=True,
+                          required=False,
                           help_text="""The unique name of the
                           SpawnContainer""")
 
     volume = FloatProperty(required=True,
                            help_text="""Volume of the SpawnContainer""")
-    description = StringProperty(required=True,
+    description = StringProperty(required=False,
                                  help_text="""Some description of the
                                  spawn container (e.g. Glass jar with
                                  hole drilled into lid)""")
@@ -322,6 +327,17 @@ class SpawnContainer(DjangoNode):
         self.is_located_at.connect_new = types.MethodType(
             CustomRelationshipManager.connect_new, self.is_located_at)
 
+    @property
+    def current_spawn(self):
+        results, columns = self.cypher("""MATCH
+        (spawnContainer:SpawnContainer) WHERE
+        id(spawnContainer)=$self MATCH
+        (spawn:Spawn)-[rel:IS_CONTAINED_BY]->(spawnContainer)
+        WHERE NOT EXISTS(rel.end) RETURN spawn""")
+
+        return [Spawn.inflate(row[0]) for row in results]
+
+    @property
     def current_location(self):
         results, columns = self.cypher("""MATCH
         (spawnContainer:SpawnContainer) WHERE
@@ -404,16 +420,6 @@ class Spawn(MyceliumSample):
                                      "IS_CONTAINED_BY",
                                      model=IsContainedBy)
 
-    def current_spawn(self):
-        
-        results, columns = self.cypher("""MATCH
-        (spawnContainer:SpawnContainer) WHERE
-        id(spawnContainer)=$self MATCH
-        (spawn:Spawn)-[rel:IS_CONTAINED_BY]->(spawnContainer)
-        WHERE NOT EXISTS(rel.end) RETURN spawn""")
-
-        return [Spawn.inflate(row[0]) for row in results]
-
 
 class SubstrateContainer(DjangoNode):
     """Class that contains all the abstractions for the
@@ -446,6 +452,30 @@ class SubstrateContainer(DjangoNode):
         self.is_located_at.connect_new = types.MethodType(
             CustomRelationshipManager.connect_new, self.is_located_at)
 
+    @staticmethod
+    def create_with_fh(validated_data, num_fruiting_holes):
+        """Create a SubstrateContainer and its fruiting holes
+
+        """
+        substrate_container = SubstrateContainer(**validated_data)
+        with db.transaction:
+            substrate_container.save()
+            for i in range(num_fruiting_holes):
+                fruiting_hole = FruitingHole()
+                fruiting_hole.save()
+                fruiting_hole.is_part_of.connect(substrate_container)
+        return substrate_container
+
+    @property
+    def fruiting_holes(self):
+        results, columns = self.cypher("""MATCH
+        (substrateContainer:SubstrateContainer) WHERE
+        id(substrateContainer)=$self MATCH
+        (fruitingHole:FruitingHole)-[rel:IS_PART_OF]->(substrateContainer)
+        WHERE NOT EXISTS(rel.end) RETURN fruitingHole""")
+        return [FruitingHole.inflate(row[0]) for row in results]
+
+    @property
     def current_substrate(self):
 
         results, columns = self.cypher("""MATCH
@@ -456,6 +486,7 @@ class SubstrateContainer(DjangoNode):
 
         return [Substrate.inflate(row[0]) for row in results]
 
+    @property
     def current_location(self):
         results, columns = self.cypher("""MATCH
         (substrateContainer:SubstrateContainer) WHERE
@@ -621,6 +652,7 @@ class Sensor(DjangoNode):
                                    format="%Y-%m-%d %H:%M %Z",
                                    help_text="""The timestamp at which
                                    it was created""")
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.is_sensing_in.connect_new = types.MethodType(

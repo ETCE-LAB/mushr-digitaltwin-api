@@ -1,27 +1,29 @@
 from rest_framework import serializers
-from django_neomodel import DjangoNode
 from neomodel import db
-from mushr_digitaltwin.models import (GrowChamber, StorageLocation)
+from mushr_digitaltwin.models import (GrowChamber, StorageLocation,
+                                      Strain, SpawnContainer,
+                                      SubstrateContainer)
 
 
 class MushRUIDSerializer(serializers.CharField):
     def to_representation(self, instance):
-        return (super(MushRUIDSerializer, self).to_representation(instance.uid))
+        return (super(MushRUIDSerializer,
+                      self).to_representation(instance.uid))
 
 
 class MushRRelationshipSerializer(serializers.Serializer):
     def to_representation(self, instance):
-        instance.__label__ = str(type(instance).__name__)
+        instance.__relationship_type__ = str(type(instance).__name__)
         instance.__start_node__ = instance.start_node()
         instance.__end_node__ = instance.end_node()
         return (super(MushRRelationshipSerializer,
                       self).to_representation(instance))
- 
+
     id = serializers.IntegerField(
         read_only=True,
         help_text="""Neo4j Internal ID""")
 
-    __label__ = serializers.CharField(read_only=True)
+    __relationship_type__ = serializers.CharField(read_only=True)
 
     __start_node__ = MushRUIDSerializer(read_only=True)
     __end_node__ = MushRUIDSerializer(read_only=True)
@@ -32,17 +34,18 @@ class MushRRelationshipSerializer(serializers.Serializer):
         instance.save()
         return instance
 
+
 class MushRTraversalSerializer(serializers.ListField):
     def to_representation(self, instance):
         traversal = instance._new_traversal()
-        instance = [instance.relationship(node) for node in instance.all()]
+        instance = [instance.relationship(node) for node in traversal.all()]
         return (super(MushRTraversalSerializer,
                       self).to_representation(instance))
 
 
 class MushRIsDescendentOfRelationshipSerializer(MushRRelationshipSerializer):
     pass
-    
+
 
 class MushRIsLocatedAtRelationshipSerializer(MushRRelationshipSerializer):
     start = serializers.DateTimeField(
@@ -132,6 +135,7 @@ class MyceliumSampleSerializer(MushRNodeSerializer):
                                     help_text="""Weight of the Mycelium strain
                                     sample""")
 
+
 class SpawnSerializer(MyceliumSampleSerializer):
     composition = serializers.CharField(
         required=True,
@@ -173,18 +177,32 @@ class StrainSerializer(MyceliumSampleSerializer):
         read_only=True,
         child=MushRIsLocatedAtRelationshipSerializer())
 
+    @db.transaction
+    def create(self, validated_data):
+        strain = Strain(**validated_data)
+        strain.save()
+        return strain
+
 
 class SpawnContainerSerializer(MushRNodeSerializer):
     def to_representation(self, instance):
-        instance.currentSpawn = instance.current_spawn()
-        instance.currentLocation = instance.current_location()
         return (super(SpawnContainerSerializer,
                       self).to_representation(instance))
 
     volume = serializers.FloatField(
         required=True,
         help_text="""Volume of the SpawnContainer""")
+
+    name = serializers.CharField(
+        required=False,
+        help_text="""A name for the container""")
+
+    description = serializers.CharField(
+        required=False,
+        help_text="""A description of the container""")
+
     dateCreated = serializers.DateTimeField(
+        required=False,
         help_text="""The timestamp at which
         it was created""",
         read_only=False)
@@ -192,65 +210,76 @@ class SpawnContainerSerializer(MushRNodeSerializer):
         help_text="""The user who created
         this node""",
         required=False)
+
     is_located_at = MushRTraversalSerializer(
         read_only=True,
         child=MushRIsLocatedAtRelationshipSerializer())
 
-    currentSpawn = serializers.ListField(
+    current_spawn = serializers.ListField(
         help_text="""Currently occupied Spawn""",
         read_only=True,
         child=MushRUIDSerializer(
             help_text="""MushR UID of Spawn"""))
 
-    currentLocation = serializers.ListField(
+    current_location = serializers.ListField(
         help_text="""Current location""",
         read_only=True,
         child=MushRUIDSerializer(
             help_text="""Mushr UID of Location"""))
 
+    @db.transaction
+    def create(self, validated_data):
+        spawn_container = SpawnContainer(**validated_data)
+        spawn_container.save()
+        return spawn_container
+
 
 class SubstrateContainerSerializer(MushRNodeSerializer):
     def to_representation(self, instance):
-        instance.currentSubstrate = instance.current_substrate()
-        instance.currentLocation = instance.current_location()
         return (super(SubstrateContainerSerializer,
                       self).to_representation(instance))
 
     description = serializers.CharField(
-        required=True,
-        help_text="""A description of what
-        the substrate is composed of,
-        e.g. Straw Pellets""")
+        required=False,
+        help_text="""A description of the container""")
 
     volume = serializers.FloatField(
         required=True,
         help_text="""Volume of the SubstrateContainer""")
 
     createdBy = serializers.CharField(
+        required=False,
         help_text="""The user who created
         this node""")
+
     dateCreated = serializers.DateTimeField(
+        required=False,
         help_text="""The timestamp at which
         it was created""",
         read_only=False)
-    
+
+    fruiting_holes = serializers.ListField(
+        help_text="""FruitingHoles that are part of the
+        SubstrateContainer""",
+        read_only=True,
+        child=MushRUIDSerializer(
+            help_text="""UID of FruitingHole"""))
+
     is_located_at = MushRTraversalSerializer(
         read_only=True,
         child=MushRIsLocatedAtRelationshipSerializer())
 
-    currentSubstrate = serializers.ListField(
+    current_substrate = serializers.ListField(
         help_text="""Currently occupied Substrate""",
         read_only=True,
         child=MushRUIDSerializer(
-            help_text="""MushR UID of Substrate"""
-        ))
+            help_text="""MushR UID of Substrate"""))
 
-    currentLocation = serializers.ListField(
+    current_location = serializers.ListField(
         help_text="""Current location""",
         read_only=True,
         child=MushRUIDSerializer(
             help_text="""Mushr UID of Location"""))
-
 
 
 class SubstrateSerializer(MushRNodeSerializer):
