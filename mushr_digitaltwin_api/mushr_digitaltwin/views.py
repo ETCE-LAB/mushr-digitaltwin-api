@@ -3,7 +3,12 @@ from mushr_digitaltwin.models import (Location, GrowChamber,
                                       Strain, Spawn, SpawnContainer,
                                       Substrate, SubstrateContainer,
                                       FruitingHole, Flush,
-                                      MushroomHarvest, Sensor)
+                                      MushroomHarvest, Sensor,
+                                      IsLocatedAt, FruitsThrough,
+                                      IsContainedBy, IsPartOf,
+                                      IsSensingIn, IsDescendentOf,
+                                      FruitsFrom, IsHarvestedFrom,
+                                      IsInnoculatedFrom)
 from mushr_digitaltwin.serializers import (LocationSerializer,
                                            MyceliumSampleSerializer,
                                            StrainSerializer,
@@ -14,7 +19,10 @@ from mushr_digitaltwin.serializers import (LocationSerializer,
                                            FruitingHoleSerializer,
                                            FlushSerializer,
                                            MushroomHarvestSerializer,
-                                           SensorSerializer)
+                                           SensorSerializer,
+                                           MushRIsLocatedAtRelationshipSerializer,
+                                           MushRIsDescendentOfRelationshipSerializer)
+from neomodel import db
 import datetime
 from django.http import Http404, HttpResponseBadRequest
 from rest_framework.views import APIView
@@ -58,6 +66,54 @@ class MushRNodeUIDs(APIView):
     def get(self, request, timestamp=None):
         return Response(self.yield_uids(timestamp))
 
+class MushRRelationshipInstance(APIView):
+    """Retrieve/update instance of a MushR Relationship"""
+
+    # Mapping a model to its serializer
+    serializer_map = {
+        IsLocatedAt: MushRIsLocatedAtRelationshipSerializer,
+        FruitsThrough: MushRIsLocatedAtRelationshipSerializer,
+        IsContainedBy: MushRIsLocatedAtRelationshipSerializer,
+        IsPartOf: MushRIsLocatedAtRelationshipSerializer,
+        IsSensingIn: MushRIsLocatedAtRelationshipSerializer,
+        IsDescendentOf: MushRIsDescendentOfRelationshipSerializer,
+        FruitsFrom: MushRIsDescendentOfRelationshipSerializer,
+        IsHarvestedFrom: MushRIsDescendentOfRelationshipSerializer,
+        IsInnoculatedFrom: MushRIsDescendentOfRelationshipSerializer,
+    }
+
+    def get_relationship(self, id):
+        """Get a relationship with id
+
+        """
+        try:
+            results, meta = db.cypher_query(
+                "MATCH ()-[r]->() where id(r)=$id return r", {"id":id},
+                resolve_objects=True)
+            return results[0][0]
+            
+        except IndexError:
+            raise Http404
+
+    def get(self, request, id, format=None):
+        relationship = self.get_relationship(id)
+        serializer = MushRRelationshipInstance.serializer_map[
+            type(relationship)](relationship)
+
+        return Response(serializer.data)
+
+    def put(self, request, id, **kwargs):
+        relationship = self.get_relationship(id)
+        serializer = MushRRelationshipInstance.serializer_map[
+            type(relationship)](relationship,
+                                data=request.data,
+                                partial=True)
+        if serializer.is_valid(raise_exception=False):
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors, status=400)
+
 
 class MushRInstance(APIView):
     """Retrieve instance of a MushR Node
@@ -67,7 +123,7 @@ class MushRInstance(APIView):
     def mushr_model(self):
         return None
 
-    # Mapping a model to it's serializer
+    # Mapping a model to its serializer
     serializer_map = {
         Location: LocationSerializer,
         GrowChamber: LocationSerializer,

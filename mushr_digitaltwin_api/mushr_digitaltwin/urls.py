@@ -6,6 +6,9 @@ from mushr_digitaltwin.converters import ISO8601Converter
 register_converter(ISO8601Converter, "ISO8601DateTime")
 
 urlpatterns = [
+
+    # Paths for main nodes
+
     path("substrate/", views.SubstrateUIDs.as_view()),
     path("substrate/<ISO8601DateTime:timestamp>", views.SubstrateUIDs.as_view()),
     path("substrate/<uid>/", views.SubstrateInstance.as_view()),
@@ -67,4 +70,7 @@ urlpatterns = [
     path("sensor/<ISO8601DateTime:timestamp>", views.SensorUIDs.as_view()),
     path("sensor/<uid>/", views.SensorInstance.as_view()),
 
+    # Paths for specific relationships
+
+    path("relationship/<int:id>", views.MushRRelationshipInstance.as_view()),
 ]

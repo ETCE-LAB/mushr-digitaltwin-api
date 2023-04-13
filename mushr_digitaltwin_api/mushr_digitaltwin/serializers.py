@@ -10,8 +10,9 @@ class MushRUIDSerializer(serializers.CharField):
 
 class MushRRelationshipSerializer(serializers.Serializer):
     def to_representation(self, instance):
-        instance.start_node = instance.start_node()
-        instance.end_node = instance.end_node()
+        instance.__label__ = str(type(instance).__name__)
+        instance.__start_node__ = instance.start_node()
+        instance.__end_node__ = instance.end_node()
         return (super(MushRRelationshipSerializer,
                       self).to_representation(instance))
  
@@ -19,8 +20,16 @@ class MushRRelationshipSerializer(serializers.Serializer):
         read_only=True,
         help_text="""Neo4j Internal ID""")
 
-    start_node = MushRUIDSerializer()
-    end_node = MushRUIDSerializer()
+    __label__ = serializers.CharField(read_only=True)
+
+    __start_node__ = MushRUIDSerializer(read_only=True)
+    __end_node__ = MushRUIDSerializer(read_only=True)
+
+    def update(self, instance, validated_data):
+        for key, value in validated_data.items():
+            setattr(instance, key, validated_data.get(key))
+        instance.save()
+        return instance
 
 class MushRTraversalSerializer(serializers.ListField):
     def to_representation(self, instance):
@@ -38,7 +47,8 @@ class MushRIsLocatedAtRelationshipSerializer(MushRRelationshipSerializer):
     start = serializers.DateTimeField(
         help_text="""The start time of the time period during which
         the MushR Asset is located at the Location""",
-        read_only=False)
+        read_only=False,
+        required=True)
 
     end = serializers.DateTimeField(
         help_text="""The end time of the time period during which
@@ -48,11 +58,13 @@ class MushRIsLocatedAtRelationshipSerializer(MushRRelationshipSerializer):
 
     startBy = serializers.CharField(
         required=False,
+        read_only=False,
         help_text="""The user who set the start
         of this location period""")
 
     endBy = serializers.CharField(
         required=False,
+        read_only=False,
         help_text="""The user who set the end
         of this location period""")
 
