@@ -10,6 +10,7 @@ from mushr_digitaltwin.models import (Location, GrowChamber,
                                       FruitsFrom, IsHarvestedFrom,
                                       IsInnoculatedFrom)
 from mushr_digitaltwin.serializers import (LocationSerializer,
+                                           GrowChamberSerializer,
                                            MyceliumSampleSerializer,
                                            StrainSerializer,
                                            SpawnSerializer,
@@ -102,7 +103,7 @@ class MushRRelationshipInstance(APIView):
 
         return Response(serializer.data)
 
-    def put(self, request, id, **kwargs):
+    def post(self, request, id, **kwargs):
         relationship = self.get_relationship(id)
         serializer = MushRRelationshipInstance.serializer_map[
             type(relationship)](relationship,
@@ -114,11 +115,7 @@ class MushRRelationshipInstance(APIView):
         else:
             return Response(serializer.errors, status=400)
 
-
-class MushRInstance(APIView):
-    """Retrieve instance of a MushR Node
-
-    """
+class MushRNodeBaseAPIView(APIView):
     @property
     def mushr_model(self):
         return None
@@ -126,7 +123,7 @@ class MushRInstance(APIView):
     # Mapping a model to its serializer
     serializer_map = {
         Location: LocationSerializer,
-        GrowChamber: LocationSerializer,
+        GrowChamber: GrowChamberSerializer,
         StorageLocation: LocationSerializer,
         MyceliumSample: MyceliumSampleSerializer,
         Strain: StrainSerializer,
@@ -139,6 +136,20 @@ class MushRInstance(APIView):
         MushroomHarvest: MushroomHarvestSerializer,
         Sensor: SensorSerializer}
 
+class MushRNodeCreationAPIView(MushRNodeBaseAPIView):
+    def put(self, request, **kwargs):
+        serializer = MushRInstance.serializer_map[self.mushr_model](data=request.data)
+        if serializer.is_valid(raise_exception=False):
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors, status=400)
+
+
+class MushRInstance(MushRNodeBaseAPIView):
+    """Retrieve/Update instance of a MushR Node
+
+    """
     def get_node(self, uid):
         try:
             return self.mushr_model.nodes.get(uid=uid)
@@ -150,7 +161,7 @@ class MushRInstance(APIView):
         serializer = MushRInstance.serializer_map[self.mushr_model](node)
         return Response(serializer.data)
 
-    def put(self, request, uid, **kwargs):
+    def post(self, request, uid, **kwargs):
         node = self.get_node(uid)
         serializer = MushRInstance.serializer_map[self.mushr_model](node,
                                                                     data=request.data,
@@ -172,12 +183,18 @@ class LocationInstance(MushRInstance):
     def mushr_model(self):
         return Location
 
+
 class GrowChamberUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
         return GrowChamber
 
 class GrowChamberInstance(MushRInstance):
+    @property
+    def mushr_model(self):
+        return GrowChamber
+
+class CreateGrowChamberInstance(MushRNodeCreationAPIView):
     @property
     def mushr_model(self):
         return GrowChamber

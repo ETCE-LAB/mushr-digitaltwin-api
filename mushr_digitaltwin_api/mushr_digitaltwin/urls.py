@@ -18,6 +18,7 @@ urlpatterns = [
     path("location/<uid>/", views.LocationInstance.as_view()),
 
     path("grow_chamber/", views.GrowChamberUIDs.as_view()),
+    path("grow_chamber/create", views.CreateGrowChamberInstance.as_view()),
     path("grow_chamber/<ISO8601DateTime:timestamp>", views.GrowChamberUIDs.as_view()),
     path("grow_chamber/<uid>/", views.GrowChamberInstance.as_view()),
 
@@ -53,7 +54,7 @@ urlpatterns = [
     path("substrate/<ISO8601DateTime:timestamp>", views.SubstrateUIDs.as_view()),
     path("substrate/<uid>/", views.SubstrateInstance.as_view()),
 
-    path("fruiting_hole/", views.SubstrateUIDs.as_view()),
+    path("fruiting_hole/", views.FruitingHoleUIDs.as_view()),
     path("fruiting_hole/<ISO8601DateTime:timestamp>", views.FruitingHoleUIDs.as_view()),
     path("fruiting_hole/<uid>/", views.FruitingHoleInstance.as_view()),
 

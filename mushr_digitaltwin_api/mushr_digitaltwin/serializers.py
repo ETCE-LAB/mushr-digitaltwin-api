@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django_neomodel import DjangoNode
-from mushr_digitaltwin.models import Substrate, Location
+from neomodel import db
+from mushr_digitaltwin.models import GrowChamber
 
 
 class MushRUIDSerializer(serializers.CharField):
@@ -89,15 +90,29 @@ class MushRNodeSerializer(serializers.Serializer):
 
 
 class LocationSerializer(MushRNodeSerializer):
+    name = serializers.CharField(
+        required=True,
+        read_only=False,
+        help_text="""Name of the Location""")
     description = serializers.CharField(
         required=False,
         read_only=False,
-        help_text="""""")
+        help_text="""Description of the Location""")
     dateCreated = serializers.DateTimeField(
         required=False,
         help_text="""The timestamp at which
         it was created""",
         read_only=False)
+
+
+class GrowChamberSerializer(LocationSerializer):
+
+    @db.transaction
+    def create(self, validated_data):
+        grow_chamber = GrowChamber(**validated_data)
+        grow_chamber.save()
+        return grow_chamber
+
 
 class MyceliumSampleSerializer(MushRNodeSerializer):
     dateCreated = serializers.DateTimeField(
