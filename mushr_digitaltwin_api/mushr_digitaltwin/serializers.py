@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django_neomodel import DjangoNode
 from neomodel import db
-from mushr_digitaltwin.models import GrowChamber
+from mushr_digitaltwin.models import (GrowChamber, StorageLocation)
 
 
 class MushRUIDSerializer(serializers.CharField):
@@ -112,6 +112,15 @@ class GrowChamberSerializer(LocationSerializer):
         grow_chamber = GrowChamber(**validated_data)
         grow_chamber.save()
         return grow_chamber
+
+
+class StorageLocationSerializer(LocationSerializer):
+
+    @db.transaction
+    def create(self, validated_data):
+        storage_location = StorageLocation(**validated_data)
+        storage_location.save()
+        return storage_location
 
 
 class MyceliumSampleSerializer(MushRNodeSerializer):

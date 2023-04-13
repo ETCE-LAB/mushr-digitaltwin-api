@@ -23,6 +23,7 @@ urlpatterns = [
     path("grow_chamber/<uid>/", views.GrowChamberInstance.as_view()),
 
     path("storage_location/", views.StorageLocationUIDs.as_view()),
+    path("storage_location/create", views.CreateStorageLocationInstance.as_view()),
     path("storage_location/<ISO8601DateTime:timestamp>", views.StorageLocationUIDs.as_view()),
     path("storage_location/<uid>/", views.StorageLocationInstance.as_view()),
 

@@ -11,6 +11,7 @@ from mushr_digitaltwin.models import (Location, GrowChamber,
                                       IsInnoculatedFrom)
 from mushr_digitaltwin.serializers import (LocationSerializer,
                                            GrowChamberSerializer,
+                                           StorageLocationSerializer,
                                            MyceliumSampleSerializer,
                                            StrainSerializer,
                                            SpawnSerializer,
@@ -124,7 +125,7 @@ class MushRNodeBaseAPIView(APIView):
     serializer_map = {
         Location: LocationSerializer,
         GrowChamber: GrowChamberSerializer,
-        StorageLocation: LocationSerializer,
+        StorageLocation: StorageLocationSerializer,
         MyceliumSample: MyceliumSampleSerializer,
         Strain: StrainSerializer,
         Spawn: SpawnSerializer,
@@ -208,6 +209,13 @@ class StorageLocationInstance(MushRInstance):
     @property
     def mushr_model(self):
         return StorageLocation
+
+
+class CreateStorageLocationInstance(MushRNodeCreationAPIView):
+    @property
+    def mushr_model(self):
+        return StorageLocation
+
 
 class MyceliumSampleUIDs(MushRNodeUIDs):
     @property
