@@ -41,6 +41,7 @@ urlpatterns = [
     path("strain/<uid>/", views.StrainInstance.as_view()),
 
     path("spawn/", views.SpawnUIDs.as_view()),
+    path("spawn/create/<spawn_container_uid>", views.CreateSpawn.as_view()),
     path("spawn/<ISO8601DateTime:timestamp>", views.SpawnUIDs.as_view()),
     path("spawn/<uid>/", views.SpawnInstance.as_view()),
 

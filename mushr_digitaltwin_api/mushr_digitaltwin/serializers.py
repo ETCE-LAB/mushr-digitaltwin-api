@@ -128,6 +128,7 @@ class StorageLocationSerializer(LocationSerializer):
 
 class MyceliumSampleSerializer(MushRNodeSerializer):
     dateCreated = serializers.DateTimeField(
+        required=False,
         help_text="""The timestamp at which
         it was created""",
         read_only=False)
@@ -143,7 +144,7 @@ class SpawnSerializer(MyceliumSampleSerializer):
         the spawn is composed of,
         e.g. wheat""")
     volume = serializers.FloatField(
-        required=True,
+        required=False,
         help_text="""Volume of the Spawn (milliliters)""")
     dateSterilized = serializers.DateTimeField(
         help_text="""The timestamp at which
@@ -151,6 +152,7 @@ class SpawnSerializer(MyceliumSampleSerializer):
         read_only=False,
         required=False)
     createdBy = serializers.CharField(
+        required=False,
         help_text="""The user who created
         this node""")
     is_innoculated_from = MushRTraversalSerializer(

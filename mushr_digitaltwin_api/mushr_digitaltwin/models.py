@@ -9,7 +9,14 @@ from neomodel import (RelationshipManager, OUTGOING, INCOMING)
 from neomodel import (StringProperty, UniqueIdProperty,
                       DateTimeProperty, FloatProperty)
 from neomodel import db
+
 import types
+
+class MushRException(Exception):
+    """Exception specific to MushR validation
+
+    """
+    pass
 
 
 def custom_rel_merge_helper(lhs, rhs,
@@ -265,7 +272,7 @@ class MyceliumSample(DjangoNode):
 
     """
     uid = UniqueIdProperty()
-    dateCreated = DateTimeProperty(default=currenttime,
+    dateCreated = DateTimeProperty(required=False,
                                    format="%Y-%m-%d %H:%M %Z",
                                    help_text="""The timestamp at which
                                    it was created""")
@@ -348,6 +355,40 @@ class SpawnContainer(DjangoNode):
         return [(Location.inflate(row[0]), IsLocatedAt.inflate(row[1]))
                 for row in results]
 
+    @staticmethod
+    def get_free_spawn_containers():
+        """Returns a list of SpawnContainers which currently are not
+        containing any spawn.
+
+        """
+        free_spawn_containers, meta = db.cypher_query(
+            """MATCH (subc:SpawnContainer)
+            WHERE (:Spawn)-[:IS_CONTAINED_BY]->(subc)
+            WITH subc
+            MATCH (:Spawn)-[R:IS_CONTAINED_BY]->(subc)
+            WITH subc, collect(R) as Rcoll
+            WHERE all(r in Rcoll WHERE exists(r.end))
+            return distinct(subc)""", {}, resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if free_spawn_containers:
+            # If any containers were fetched, select the first
+            # column of the results
+            free_spawn_containers = free_spawn_containers[0]
+
+        new_spawn_containers, meta = db.cypher_query(
+            """MATCH (subc:SpawnContainer)
+            WHERE NOT (subc)<-[:IS_CONTAINED_BY]-(:Spawn)
+            RETURN distinct(subc)""", {}, resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if new_spawn_containers:
+            # If any containers were fetched, select the first
+            # column of the results
+            new_spawn_containers = new_spawn_containers[0]
+
+        return free_spawn_containers + new_spawn_containers
+
     def change_storage_location(self, location_uid, transaction=False):
         """Change storage location of the SpawnContainer
 
@@ -419,6 +460,20 @@ class Spawn(MyceliumSample):
     is_contained_by = RelationshipTo(SpawnContainer,
                                      "IS_CONTAINED_BY",
                                      model=IsContainedBy)
+
+    @staticmethod
+    def create_new(validated_data, spawn_container_uid):
+        spawn = Spawn(**validated_data)
+        spawn_container = SpawnContainer.nodes.get(uid=spawn_container_uid)
+        current_spawn = spawn_container.current_spawn
+        if current_spawn:
+            raise MushRException(
+                f"SpawnContainer({spawn_container_uid}) unavaliable")
+        with db.transaction:
+            spawn.save()
+            spawn.is_contained_by.connect(spawn_container)
+
+        return spawn
 
 
 class SubstrateContainer(DjangoNode):
@@ -606,12 +661,13 @@ class Flush(DjangoNode):
     fruits_through = RelationshipTo(FruitingHole,
                                     "FRUITS_THROUGH",
                                     model=FruitsThrough)
+
     @classmethod
     def fruiting_flushes(self,
                          timestamp=None):
         if timestamp is None:
             timestamp = currenttime()
-        flushes, meta = db.cypher_query(f"MATCH (fl:Flush)-[rel:FRUITS_THROUGH]->() WHERE rel.start <= {timestamp.timestamp()} return fl", {})
+        flushes, meta = db.cypher_query(f"MATCH (fl:Flush)-[rel:FRUITS_THROUGH]->() WHERE rel.start <= {timestamp.timestamp()} return fl", {}, retry_on_session_expire=True)
         return [Flush.inflate(fl[0]) for fl in flushes]
 
 

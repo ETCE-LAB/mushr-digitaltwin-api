@@ -9,6 +9,7 @@ from mushr_digitaltwin.models import (Location, GrowChamber,
                                       IsSensingIn, IsDescendentOf,
                                       FruitsFrom, IsHarvestedFrom,
                                       IsInnoculatedFrom)
+from mushr_digitaltwin.models import MushRException
 from mushr_digitaltwin.serializers import (LocationSerializer,
                                            GrowChamberSerializer,
                                            StorageLocationSerializer,
@@ -27,6 +28,8 @@ from mushr_digitaltwin.serializers import (LocationSerializer,
 from neomodel import db
 import datetime
 from django.http import Http404
+from django.http.response import (HttpResponseBadRequest,
+                                  HttpResponseNotFound)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
@@ -250,6 +253,33 @@ class SpawnInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Spawn
+
+
+class CreateSpawn(MushRNodeBaseAPIView):
+    @property
+    def mushr_model(self):
+        return Spawn
+
+    def put(self, request, spawn_container_uid, **kwargs):
+        """Create Spawn and automatically put it in a free
+        SpawnContainer.
+
+        `spawn_container_uid`: UID of a free spawn container. See TODO
+
+        """
+        serializer = SpawnSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=False):
+            try:
+                spawn = Spawn.create_new(serializer.validated_data,
+                                         spawn_container_uid)
+                serializer = SpawnSerializer(spawn)
+                return Response(serializer.data)
+            except SpawnContainer.DoesNotExist as E:
+                return HttpResponseNotFound(E)
+            except MushRException as E:
+                return HttpResponseBadRequest(E)
+        else:
+            return Response(serializer.errors, status=400)
 
 
 class StrainUIDs(MushRNodeUIDs):
