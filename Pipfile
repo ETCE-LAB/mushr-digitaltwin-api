@@ -12,6 +12,8 @@ pyyaml = "*"
 uritemplate = "*"
 sphinxcontrib-django = "*"
 sphinx = "*"
+daphne = "*"
+twisted = {extras = ["http2", "tls"], version = "*"}
 
 [dev-packages]
 
