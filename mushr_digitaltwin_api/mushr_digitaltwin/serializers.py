@@ -308,7 +308,7 @@ class SubstrateSerializer(MushRNodeSerializer):
     createdBy = serializers.CharField(
         help_text="""The user who
           created this node""",
-        required=True)      
+        required=False)      
 
     is_innoculated_from = MushRTraversalSerializer(
         read_only=True,

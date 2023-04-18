@@ -31,10 +31,6 @@ urlpatterns = [
     path("mycelium_sample/<ISO8601DateTime:timestamp>", views.MyceliumSampleUIDs.as_view()),
     path("mycelium_sample/<uid>/", views.MyceliumSampleInstance.as_view()),
 
-    path("spawn/", views.SpawnUIDs.as_view()),
-    path("spawn/<ISO8601DateTime:timestamp>", views.SpawnUIDs.as_view()),
-    path("spawn/<uid>/", views.SpawnInstance.as_view()),
-
     path("strain/", views.StrainUIDs.as_view()),
     path("strain/create", views.CreateStrainInstance.as_view()),
     path("strain/<ISO8601DateTime:timestamp>", views.StrainUIDs.as_view()),
@@ -56,6 +52,7 @@ urlpatterns = [
     path("substrate_container/<uid>/", views.SubstrateContainerInstance.as_view()),
 
     path("substrate/", views.SubstrateUIDs.as_view()),
+    path("substrate/create/<substrate_container_uid>", views.CreateSubstrate.as_view()),
     path("substrate/<ISO8601DateTime:timestamp>", views.SubstrateUIDs.as_view()),
     path("substrate/<uid>/", views.SubstrateInstance.as_view()),
 

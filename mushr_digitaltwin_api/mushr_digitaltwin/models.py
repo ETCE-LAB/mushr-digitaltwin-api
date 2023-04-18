@@ -468,7 +468,8 @@ class Spawn(MyceliumSample):
         current_spawn = spawn_container.current_spawn
         if current_spawn:
             raise MushRException(
-                f"SpawnContainer({spawn_container_uid}) unavaliable")
+                f"SpawnContainer(uid={spawn_container_uid}) is currently occupied with Spawn(uid={current_spawn[0].uid})")
+
         with db.transaction:
             spawn.save()
             spawn.is_contained_by.connect(spawn_container)
@@ -621,7 +622,8 @@ class Substrate(DjangoNode):
                                       help_text="""The timestamp at
                                             which it was sterilized""")
     createdBy = StringProperty(help_text="""The user who created this
-    node""")
+    node""",
+                               required=False)
 
     innoculatedBy = StringProperty(help_text="""The user who
     innoculated this spawn""")
@@ -632,6 +634,19 @@ class Substrate(DjangoNode):
     is_contained_by = RelationshipTo(SubstrateContainer,
                                      "IS_CONTAINED_BY",
                                      model=IsContainedBy)
+
+    @staticmethod
+    def create_new(validated_data, substrate_container_uid):
+        substrate = Substrate(**validated_data)
+        substrate_container = SubstrateContainer.nodes.get(uid=substrate_container_uid)
+        current_substrate = substrate_container.current_substrate
+        if current_substrate:
+            raise MushRException(
+                f"SubstrateContainer(uid={substrate_container_uid}) is currently occupied with Substrate(uid={current_substrate[0].uid})")
+        with db.transaction:
+            substrate.save()
+            substrate.is_contained_by.connect(substrate_container)
+        return substrate
 
 
 class FruitingHole(DjangoNode):

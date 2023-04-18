@@ -275,9 +275,11 @@ class CreateSpawn(MushRNodeBaseAPIView):
                 serializer = SpawnSerializer(spawn)
                 return Response(serializer.data)
             except SpawnContainer.DoesNotExist as E:
-                return HttpResponseNotFound(E)
+                return Response({"spawn_container": [
+                    f"SpawnContainer(uid={spawn_container_uid}) does not exist"
+                ]}, status=404)
             except MushRException as E:
-                return HttpResponseBadRequest(E)
+                return Response({"mushr_exception": [str(E)]}, status=400)
         else:
             return Response(serializer.errors, status=400)
 
@@ -365,6 +367,36 @@ class SubstrateInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Substrate
+
+
+class CreateSubstrate(MushRNodeBaseAPIView):
+    @property
+    def mushr_model(self):
+        return Substrate
+
+    def put(self, request, substrate_container_uid, **kwargs):
+        """Create Substrate and automatically put it in a free
+        SubstrateContainer.
+
+        `substrate_container_uid`: UID of a free substrate
+        container. See TODO: Add avalialable container list view
+
+        """
+        serializer = SubstrateSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=False):
+            try:
+                substrate = Substrate.create_new(serializer.validated_data,
+                                         substrate_container_uid)
+                serializer = SubstrateSerializer(substrate)
+                return Response(serializer.data)
+            except SubstrateContainer.DoesNotExist as E:
+                return Response({"substrate_container": [
+                    f"SubstrateContainer(uid={substrate_container_uid}) does not exist"
+                ]}, status=404)
+            except MushRException as E:
+                return Response({"mushr_exception": [str(E)]}, status=400)
+        else:
+            return Response(serializer.errors, status=400)
 
 
 class FruitingHoleUIDs(MushRNodeUIDs):
