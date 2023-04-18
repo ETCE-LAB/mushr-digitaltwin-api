@@ -109,7 +109,7 @@ class MushRRelationshipInstance(APIView):
 
         return Response(serializer.data)
 
-    def post(self, request, id, **kwargs):
+    def put(self, request, id, **kwargs):
         relationship = self.get_relationship(id)
         serializer = MushRRelationshipInstance.serializer_map[
             type(relationship)](relationship,
@@ -145,7 +145,7 @@ class MushRNodeBaseAPIView(APIView):
 
 
 class MushRNodeCreationAPIView(MushRNodeBaseAPIView):
-    def put(self, request, **kwargs):
+    def post(self, request, **kwargs):
         serializer = MushRInstance.serializer_map[self.mushr_model
                                                   ](data=request.data)
         if serializer.is_valid(raise_exception=False):
@@ -170,7 +170,7 @@ class MushRInstance(MushRNodeBaseAPIView):
         serializer = MushRInstance.serializer_map[self.mushr_model](node)
         return Response(serializer.data)
 
-    def post(self, request, uid, **kwargs):
+    def put(self, request, uid, **kwargs):
         node = self.get_node(uid)
         serializer = MushRInstance.serializer_map[self.mushr_model
                                                   ](node,
@@ -260,7 +260,7 @@ class CreateSpawn(MushRNodeBaseAPIView):
     def mushr_model(self):
         return Spawn
 
-    def put(self, request, spawn_container_uid, **kwargs):
+    def post(self, request, spawn_container_uid, **kwargs):
         """Create Spawn and automatically put it in a free
         SpawnContainer.
 
@@ -337,7 +337,7 @@ class CreateSubstrateContainerInstance(MushRNodeBaseAPIView):
     def mushr_model(self):
         return SubstrateContainer
 
-    def put(self, request, num_fruiting_holes, **kwargs):
+    def post(self, request, num_fruiting_holes, **kwargs):
         """Create a SubstrateContainer and automatically create its
         FruitingHoles.
 
@@ -374,7 +374,7 @@ class CreateSubstrate(MushRNodeBaseAPIView):
     def mushr_model(self):
         return Substrate
 
-    def put(self, request, substrate_container_uid, **kwargs):
+    def post(self, request, substrate_container_uid, **kwargs):
         """Create Substrate and automatically put it in a free
         SubstrateContainer.
 
