@@ -28,8 +28,6 @@ from mushr_digitaltwin.serializers import (LocationSerializer,
 from neomodel import db
 import datetime
 from django.http import Http404
-from django.http.response import (HttpResponseBadRequest,
-                                  HttpResponseNotFound)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
@@ -308,6 +306,20 @@ class SpawnContainerUIDs(MushRNodeUIDs):
         return SpawnContainer
 
 
+class FreeSpawnContainerUIDs(SpawnContainerUIDs):
+    """Returns a list of SpawnContainer UIDs which are not containing
+    any Spawn at `timestamp`. If `timestamp` is not specified, then
+    current system time is assumed.
+
+    """
+    def yield_uids(self, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+        for spawn_container in SpawnContainer.get_empty_spawn_containers(
+                timestamp):
+            yield spawn_container.uid
+
+
 class SpawnContainerInstance(MushRInstance):
     @property
     def mushr_model(self):
@@ -330,6 +342,20 @@ class SubstrateContainerInstance(MushRInstance):
     @property
     def mushr_model(self):
         return SubstrateContainer
+
+
+class FreeSubstrateContainerUIDs(SubstrateContainerUIDs):
+    """Returns a list of SubstrateContainer UIDs which are not containing
+    any Spawn at `timestamp`. If `timestamp` is not specified, then
+    current system time is assumed.
+
+    """
+    def yield_uids(self, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+        for substrate_container in SubstrateContainer.get_empty_substrate_containers(
+                timestamp):
+            yield substrate_container.uid
 
 
 class CreateSubstrateContainerInstance(MushRNodeBaseAPIView):

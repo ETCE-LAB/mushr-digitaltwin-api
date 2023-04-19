@@ -12,11 +12,11 @@ from neomodel import db
 
 import types
 
+
 class MushRException(Exception):
     """Exception specific to MushR validation
 
     """
-    pass
 
 
 def custom_rel_merge_helper(lhs, rhs,
@@ -356,38 +356,50 @@ class SpawnContainer(DjangoNode):
                 for row in results]
 
     @staticmethod
-    def get_free_spawn_containers():
-        """Returns a list of SpawnContainers which currently are not
-        containing any spawn.
+    def get_empty_spawn_containers(timestamp):
+        """Returns a list of SpawnContainers which not
+        containing any spawn at `timestamp`.
 
         """
-        free_spawn_containers, meta = db.cypher_query(
+        # Spawn containers that were not new, but still empty at
+        # `timestamp`
+        empty_spawn_containers, meta = db.cypher_query(
             """MATCH (subc:SpawnContainer)
-            WHERE (:Spawn)-[:IS_CONTAINED_BY]->(subc)
-            WITH subc
-            MATCH (:Spawn)-[R:IS_CONTAINED_BY]->(subc)
+            WHERE subc.dateCreated <= $timestamp
+            AND (:Spawn)-[:IS_CONTAINED_BY]->(subc)
+            WITH subc MATCH (:Spawn)-[R:IS_CONTAINED_BY]->(subc)
+            WHERE R.start <= $timestamp
             WITH subc, collect(R) as Rcoll
-            WHERE all(r in Rcoll WHERE exists(r.end))
-            return distinct(subc)""", {}, resolve_objects=True,
+            WHERE all(r in Rcoll WHERE exists(r.end)) return distinct(subc)""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
             retry_on_session_expire=True)
 
-        if free_spawn_containers:
+        if empty_spawn_containers:
             # If any containers were fetched, select the first
             # column of the results
-            free_spawn_containers = free_spawn_containers[0]
+            empty_spawn_containers = [
+                spawn_container[0]
+                for spawn_container in empty_spawn_containers]
 
+        # Spawn containers that were new and empty at `timestamp`
         new_spawn_containers, meta = db.cypher_query(
             """MATCH (subc:SpawnContainer)
-            WHERE NOT (subc)<-[:IS_CONTAINED_BY]-(:Spawn)
-            RETURN distinct(subc)""", {}, resolve_objects=True,
+            WHERE subc.dateCreated <= $timestamp
+            AND NOT (subc)<-[:IS_CONTAINED_BY]-(:Spawn)
+            RETURN distinct(subc)""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
             retry_on_session_expire=True)
 
         if new_spawn_containers:
             # If any containers were fetched, select the first
             # column of the results
-            new_spawn_containers = new_spawn_containers[0]
+            new_spawn_containers = [
+                spawn_container[0]
+                for spawn_container in new_spawn_containers]
 
-        return free_spawn_containers + new_spawn_containers
+        return empty_spawn_containers + new_spawn_containers
 
     def change_storage_location(self, location_uid, transaction=False):
         """Change storage location of the SpawnContainer
@@ -597,6 +609,52 @@ class SubstrateContainer(DjangoNode):
             rel = self.is_located_at.connect_new(new_location)
 
         return rel
+
+    @staticmethod
+    def get_empty_substrate_containers(timestamp):
+        """Returns a list of SubstrateContainers which not
+        containing any Substrate at `timestamp`.
+
+        """
+        # Substrate containers that were not new, but still empty at
+        # `timestamp`
+        empty_substrate_containers, meta = db.cypher_query(
+            """MATCH (subc:SubstrateContainer)
+            WHERE subc.dateCreated <= $timestamp
+            AND (:Substrate)-[:IS_CONTAINED_BY]->(subc)
+            WITH subc MATCH (:Substrate)-[R:IS_CONTAINED_BY]->(subc)
+            WHERE R.start <= $timestamp
+            WITH subc, collect(R) as Rcoll
+            WHERE all(r in Rcoll WHERE exists(r.end)) return distinct(subc)""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if empty_substrate_containers:
+            # If any containers were fetched, select the first
+            # column of the results
+            empty_substrate_containers = [
+                substrate_container[0]
+                for substrate_container in empty_substrate_containers]
+
+        # Substrate containers that were new and empty at `timestamp`
+        new_substrate_containers, meta = db.cypher_query(
+            """MATCH (subc:SubstrateContainer)
+            WHERE subc.dateCreated <= $timestamp
+            AND NOT (subc)<-[:IS_CONTAINED_BY]-(:Substrate)
+            RETURN distinct(subc)""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if new_substrate_containers:
+            # If any containers were fetched, select the first
+            # column of the results
+            new_substrate_containers = [
+                substrate_container[0]
+                for substrate_container in new_substrate_containers]
+
+        return empty_substrate_containers + new_substrate_containers
 
 
 class Substrate(DjangoNode):

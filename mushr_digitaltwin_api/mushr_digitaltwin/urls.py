@@ -43,11 +43,15 @@ urlpatterns = [
 
     path("spawn_container/", views.SpawnContainerUIDs.as_view()),
     path("spawn_container/create", views.CreateSpawnContainerInstance.as_view()),
+    path("spawn_container/empty/", views.FreeSpawnContainerUIDs.as_view()),
+    path("spawn_container/empty/<ISO8601DateTime:timestamp>", views.FreeSpawnContainerUIDs.as_view()),
     path("spawn_container/<ISO8601DateTime:timestamp>", views.SpawnContainerUIDs.as_view()),
     path("spawn_container/<uid>/", views.SpawnContainerInstance.as_view()),
 
     path("substrate_container/", views.SubstrateContainerUIDs.as_view()),
     path("substrate_container/create/<int:num_fruiting_holes>", views.CreateSubstrateContainerInstance.as_view()),
+    path("substrate_container/empty/", views.FreeSubstrateContainerUIDs.as_view()),
+    path("substrate_container/empty/<ISO8601DateTime:timestamp>", views.FreeSubstrateContainerUIDs.as_view()),
     path("substrate_container/<ISO8601DateTime:timestamp>", views.SubstrateContainerUIDs.as_view()),
     path("substrate_container/<uid>/", views.SubstrateContainerInstance.as_view()),
 

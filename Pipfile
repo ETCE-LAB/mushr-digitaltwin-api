@@ -14,6 +14,7 @@ sphinxcontrib-django = "*"
 sphinx = "*"
 daphne = "*"
 twisted = {extras = ["http2", "tls"], version = "*"}
+django-cors-headers = "*"
 
 [dev-packages]
 
