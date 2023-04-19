@@ -25,11 +25,13 @@ from mushr_digitaltwin.serializers import (LocationSerializer,
                                            SensorSerializer,
                                            MushRIsLocatedAtRelationshipSerializer,
                                            MushRIsDescendentOfRelationshipSerializer)
+from rest_framework import serializers
 from neomodel import db
 import datetime
 from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema
 
 
 class MushRNodeUIDs(APIView):
@@ -210,7 +212,7 @@ class CreateGrowChamberInstance(MushRNodeCreationAPIView):
     def mushr_model(self):
         return GrowChamber
 
-    
+
 class StorageLocationUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
@@ -288,6 +290,7 @@ class CreateSpawn(MushRNodeBaseAPIView):
     def mushr_model(self):
         return Spawn
 
+    @swagger_auto_schema(responses={200: SpawnSerializer})
     def post(self, request, spawn_container_uid, **kwargs):
         """Create Spawn and automatically put it in a free
         SpawnContainer.
@@ -302,7 +305,7 @@ class CreateSpawn(MushRNodeBaseAPIView):
                                          spawn_container_uid)
                 serializer = SpawnSerializer(spawn)
                 return Response(serializer.data)
-            except SpawnContainer.DoesNotExist as E:
+            except SpawnContainer.DoesNotExist:
                 return Response({"spawn_container": [
                     f"SpawnContainer(uid={spawn_container_uid}) does not exist"
                 ]}, status=404)

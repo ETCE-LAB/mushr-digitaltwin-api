@@ -15,6 +15,7 @@ sphinx = "*"
 daphne = "*"
 twisted = {extras = ["http2", "tls"], version = "*"}
 django-cors-headers = "*"
+drf-yasg = {extras = ["validation"], version = "*"}
 
 [dev-packages]
 
