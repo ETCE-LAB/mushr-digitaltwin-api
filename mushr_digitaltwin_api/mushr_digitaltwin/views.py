@@ -253,6 +253,36 @@ class SpawnInstance(MushRInstance):
         return Spawn
 
 
+class ActiveSpawnUIDs(SpawnUIDs):
+    """Returns a list of Spawn UIDs which are not discarded at
+     `timestamp`. If `timestamp` is not specified, then current system
+     time is assumed.
+
+    """
+    def yield_uids(self, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+
+        for spawn in Spawn.get_active_spawn(
+                timestamp):
+            yield spawn.uid
+
+
+class InnoculableSpawnUIDs(SpawnUIDs):
+    """Returns a list of Spawn UIDs which are not discarded and have
+     not been innoculated at `timestamp`. If `timestamp` is not
+     specified, then current system time is assumed.
+
+    """
+    def yield_uids(self, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+
+        for spawn in Spawn.get_innoculable_spawn(
+                timestamp):
+            yield spawn.uid
+
+
 class CreateSpawn(MushRNodeBaseAPIView):
     @property
     def mushr_model(self):
@@ -395,6 +425,36 @@ class SubstrateInstance(MushRInstance):
         return Substrate
 
 
+class ActiveSubstrateUIDs(SubstrateUIDs):
+    """Returns a list of Substrate UIDs which are not discarded at
+     `timestamp`. If `timestamp` is not specified, then current system
+     time is assumed.
+
+    """
+    def yield_uids(self, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+
+        for substrate in Substrate.get_active_substrate(
+                timestamp):
+            yield substrate.uid
+
+
+class InnoculableSubstrateUIDs(SubstrateUIDs):
+    """Returns a list of Substrate UIDs which are not discarded and have
+     not been innoculated at `timestamp`. If `timestamp` is not
+     specified, then current system time is assumed.
+
+    """
+    def yield_uids(self, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+
+        for substrate in Substrate.get_innoculable_substrate(
+                timestamp):
+            yield substrate.uid
+
+
 class CreateSubstrate(MushRNodeBaseAPIView):
     @property
     def mushr_model(self):
@@ -412,10 +472,10 @@ class CreateSubstrate(MushRNodeBaseAPIView):
         if serializer.is_valid(raise_exception=False):
             try:
                 substrate = Substrate.create_new(serializer.validated_data,
-                                         substrate_container_uid)
+                                                 substrate_container_uid)
                 serializer = SubstrateSerializer(substrate)
                 return Response(serializer.data)
-            except SubstrateContainer.DoesNotExist as E:
+            except SubstrateContainer.DoesNotExist:
                 return Response({"substrate_container": [
                     f"SubstrateContainer(uid={substrate_container_uid}) does not exist"
                 ]}, status=404)

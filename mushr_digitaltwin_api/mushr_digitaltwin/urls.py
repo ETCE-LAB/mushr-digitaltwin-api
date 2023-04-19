@@ -11,6 +11,11 @@ urlpatterns = [
 
     path("substrate/", views.SubstrateUIDs.as_view()),
     path("substrate/<ISO8601DateTime:timestamp>", views.SubstrateUIDs.as_view()),
+    path("substrate/create/<substrate_container_uid>", views.CreateSubstrate.as_view()),
+    path("substrate/active/", views.ActiveSubstrateUIDs.as_view()),
+    path("substrate/active/<ISO8601DateTime:timestamp>", views.ActiveSubstrateUIDs.as_view()),
+    path("substrate/innoculable/", views.InnoculableSubstrateUIDs.as_view()),
+    path("substrate/innoculable/<ISO8601DateTime:timestamp>", views.InnoculableSubstrateUIDs.as_view()),
     path("substrate/<uid>/", views.SubstrateInstance.as_view()),
 
     path("location/", views.LocationUIDs.as_view()),
@@ -39,6 +44,10 @@ urlpatterns = [
     path("spawn/", views.SpawnUIDs.as_view()),
     path("spawn/create/<spawn_container_uid>", views.CreateSpawn.as_view()),
     path("spawn/<ISO8601DateTime:timestamp>", views.SpawnUIDs.as_view()),
+    path("spawn/active/", views.ActiveSpawnUIDs.as_view()),
+    path("spawn/active/<ISO8601DateTime:timestamp>", views.ActiveSpawnUIDs.as_view()),
+    path("spawn/innoculable/", views.InnoculableSpawnUIDs.as_view()),
+    path("spawn/innoculable/<ISO8601DateTime:timestamp>", views.InnoculableSpawnUIDs.as_view()),
     path("spawn/<uid>/", views.SpawnInstance.as_view()),
 
     path("spawn_container/", views.SpawnContainerUIDs.as_view()),
@@ -54,11 +63,6 @@ urlpatterns = [
     path("substrate_container/empty/<ISO8601DateTime:timestamp>", views.FreeSubstrateContainerUIDs.as_view()),
     path("substrate_container/<ISO8601DateTime:timestamp>", views.SubstrateContainerUIDs.as_view()),
     path("substrate_container/<uid>/", views.SubstrateContainerInstance.as_view()),
-
-    path("substrate/", views.SubstrateUIDs.as_view()),
-    path("substrate/create/<substrate_container_uid>", views.CreateSubstrate.as_view()),
-    path("substrate/<ISO8601DateTime:timestamp>", views.SubstrateUIDs.as_view()),
-    path("substrate/<uid>/", views.SubstrateInstance.as_view()),
 
     path("fruiting_hole/", views.FruitingHoleUIDs.as_view()),
     path("fruiting_hole/<ISO8601DateTime:timestamp>", views.FruitingHoleUIDs.as_view()),

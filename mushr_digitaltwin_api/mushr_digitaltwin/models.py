@@ -273,6 +273,7 @@ class MyceliumSample(DjangoNode):
     """
     uid = UniqueIdProperty()
     dateCreated = DateTimeProperty(required=False,
+                                   default=currenttime,
                                    format="%Y-%m-%d %H:%M %Z",
                                    help_text="""The timestamp at which
                                    it was created""")
@@ -473,6 +474,79 @@ class Spawn(MyceliumSample):
                                      "IS_CONTAINED_BY",
                                      model=IsContainedBy)
 
+    @property
+    def discarded(self):
+        """Returns `True` if the Spawn is not contained by a
+        SpawnContainer
+
+        """
+        spawn_containers = self.is_contained_by.match(
+            end__isnull=False).all()
+        return bool(spawn_containers)
+
+    @staticmethod
+    def get_active_spawn(timestamp):
+        """Returns a list of Spawn that are not discarded at
+        `timestamp`.
+
+        """
+        active_spawn, meta = db.cypher_query(
+            """MATCH (sp:Spawn)-[R:IS_CONTAINED_BY]->(spc)
+            WHERE R.start <= $timestamp
+            AND NOT exists(R.end) OR R.end >= $timestamp
+            return sp""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if active_spawn:
+            # If any spawn was fetched, select the first column
+            active_spawn = [spawn[0] for spawn in active_spawn]
+
+        return active_spawn
+
+    @staticmethod
+    def get_innoculable_spawn(timestamp):
+        """Returns a list of Spawn that are not discarded and have not
+        been innoculated at `timestamp`
+
+        """
+        # Spawn that was not discarded at `timestamp` and never
+        # innoculated
+        not_innoculated_spawn, meta = db.cypher_query(
+            """MATCH (sp:Spawn)-[R:IS_CONTAINED_BY]->(spc)
+            WHERE (R.start <= $timestamp
+            AND (NOT exists(R.end) OR R.end >= $timestamp))
+            AND NOT exists((sp)-[:IS_INNOCULATED_FROM]->())
+             return sp""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if not_innoculated_spawn:
+            # If any spawn was fetched, select the first column
+            not_innoculated_spawn = [
+                spawn[0] for spawn in not_innoculated_spawn]
+
+        # Spawn that was not discarded at `timestamp` and innoculated
+        # after `timestamp`
+        innoculated_later_spawn, meta = db.cypher_query(
+            """MATCH ()<-[R2:IS_INNOCULATED_FROM]-(sp:Spawn)-[R:IS_CONTAINED_BY]->(spc)
+            WHERE (R.start <= $timestamp
+            AND (NOT exists(R.end) OR R.end <= $timestamp))
+            AND R2.timestamp > $timestamp
+             return sp""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if innoculated_later_spawn:
+            # If any spawn was fetched, select the first column
+            innoculated_later_spawn = [
+                spawn[0] for spawn in innoculated_later_spawn]
+
+        return not_innoculated_spawn + innoculated_later_spawn
+
     @staticmethod
     def create_new(validated_data, spawn_container_uid):
         spawn = Spawn(**validated_data)
@@ -487,6 +561,24 @@ class Spawn(MyceliumSample):
             spawn.is_contained_by.connect(spawn_container)
 
         return spawn
+
+    def discard(self):
+        """Sets the `end` property of the is_contained_by relationship
+        to currenttime
+
+        """
+        try:
+            substrate_container = self.is_contained_by.all()[0]
+        except IndexError:
+            raise(MushRException(
+                f"Spawn(uid={self.uid}) does not have a container"))
+
+        is_contained_by_relationship = self.is_contained_by.relationship(
+            substrate_container)
+
+        with db.transaction:
+            is_contained_by_relationship.end = currenttime()
+            is_contained_by_relationship.save()
 
 
 class SubstrateContainer(DjangoNode):
@@ -684,7 +776,7 @@ class Substrate(DjangoNode):
                                required=False)
 
     innoculatedBy = StringProperty(help_text="""The user who
-    innoculated this spawn""")
+    innoculated this substrate""")
 
     is_innoculated_from = RelationshipTo(MyceliumSample,
                                          "IS_INNOCULATED_FROM",
@@ -692,6 +784,79 @@ class Substrate(DjangoNode):
     is_contained_by = RelationshipTo(SubstrateContainer,
                                      "IS_CONTAINED_BY",
                                      model=IsContainedBy)
+
+    @property
+    def discarded(self):
+        """Returns `True` if the Substrate is not contained by a
+        SubstrateContainer
+
+        """
+        substrate_containers = self.is_contained_by.match(
+            end__isnull=False).all()
+        return bool(substrate_containers)
+
+    @staticmethod
+    def get_active_substrate(timestamp):
+        """Returns a list of Substrate that are not discarded at
+        `timestamp`.
+
+        """
+        active_substrate, meta = db.cypher_query(
+            """MATCH (sp:Substrate)-[R:IS_CONTAINED_BY]->(spc)
+            WHERE R.start <= $timestamp 
+            AND NOT exists(R.end) OR R.end >= $timestamp
+            return sp""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if active_substrate:
+            # If any substrate was fetched, select the first column
+            active_substrate = [substrate[0] for substrate in active_substrate]
+
+        return active_substrate
+
+    @staticmethod
+    def get_innoculable_substrate(timestamp):
+        """Returns a list of Substrate that are not discarded and have not
+        been innoculated at `timestamp`
+
+        """
+        # Substrate that was not discarded at `timestamp` and never
+        # innoculated
+        not_innoculated_substrate, meta = db.cypher_query(
+            """MATCH (sp:Substrate)-[R:IS_CONTAINED_BY]->(spc)
+            WHERE (R.start <= $timestamp
+            AND (NOT exists(R.end) OR R.end >= $timestamp))
+            AND NOT exists((sp)-[:IS_INNOCULATED_FROM]->())
+             return sp""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if not_innoculated_substrate:
+            # If any substrate was fetched, select the first column
+            not_innoculated_substrate = [
+                substrate[0] for substrate in not_innoculated_substrate]
+
+        # Substrate that was not discarded at `timestamp` and innoculated
+        # after `timestamp`
+        innoculated_later_substrate, meta = db.cypher_query(
+            """MATCH ()<-[R2:IS_INNOCULATED_FROM]-(sp:Substrate)-[R:IS_CONTAINED_BY]->(spc)
+            WHERE (R.start <= $timestamp
+            AND (NOT exists(R.end) OR R.end <= $timestamp))
+            AND R2.timestamp > $timestamp
+             return sp""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if innoculated_later_substrate:
+            # If any substrate was fetched, select the first column
+            innoculated_later_substrate = [
+                substrate[0] for substrate in innoculated_later_substrate]
+
+        return not_innoculated_substrate + innoculated_later_substrate
 
     @staticmethod
     def create_new(validated_data, substrate_container_uid):

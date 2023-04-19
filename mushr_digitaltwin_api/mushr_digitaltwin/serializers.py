@@ -15,6 +15,7 @@ class MushRRelationshipSerializer(serializers.Serializer):
     def to_representation(self, instance):
         instance.__relationship_type__ = str(type(instance).__name__)
         instance.__start_node__ = instance.start_node()
+        instance.__start_node_labels__ = instance.start_node().labels
         instance.__end_node__ = instance.end_node()
         return (super(MushRRelationshipSerializer,
                       self).to_representation(instance))
@@ -26,6 +27,8 @@ class MushRRelationshipSerializer(serializers.Serializer):
     __relationship_type__ = serializers.CharField(read_only=True)
 
     __start_node__ = MushRUIDSerializer(read_only=True)
+    __start_node_labels__ = serializers.ListField(child=serializers.CharField(),
+                                                  read_only=True)
     __end_node__ = MushRUIDSerializer(read_only=True)
 
     def update(self, instance, validated_data):
@@ -38,7 +41,12 @@ class MushRRelationshipSerializer(serializers.Serializer):
 class MushRTraversalSerializer(serializers.ListField):
     def to_representation(self, instance):
         traversal = instance._new_traversal()
-        instance = [instance.relationship(node) for node in traversal.all()]
+        connected_nodes = traversal.all()
+        instance = [instance.all_relationships(node)
+                    for node in connected_nodes]
+        instance = [relationship_instance
+                    for relationship_instances in instance
+                    for relationship_instance in relationship_instances]
         return (super(MushRTraversalSerializer,
                       self).to_representation(instance))
 
@@ -155,6 +163,9 @@ class SpawnSerializer(MyceliumSampleSerializer):
         required=False,
         help_text="""The user who created
         this node""")
+    discarded = serializers.BooleanField(read_only=True,
+                                         help_text="""Whether the
+                                         Spawn has been discarded""")
     is_innoculated_from = MushRTraversalSerializer(
         read_only=True,
         child=MushRIsDescendentOfRelationshipSerializer())
@@ -308,8 +319,10 @@ class SubstrateSerializer(MushRNodeSerializer):
     createdBy = serializers.CharField(
         help_text="""The user who
           created this node""",
-        required=False)      
-
+        required=False)
+    discarded = serializers.BooleanField(read_only=True,
+                                         help_text="""Whether the
+                                         Substrate has been discarded""")
     is_innoculated_from = MushRTraversalSerializer(
         read_only=True,
         child=MushRIsDescendentOfRelationshipSerializer())
@@ -339,6 +352,7 @@ class FlushSerializer(MushRNodeSerializer):
         read_only=True,
         child=MushRIsLocatedAtRelationshipSerializer())
 
+
 class MushroomHarvestSerializer(MushRNodeSerializer):
     dateHarvested = serializers.DateTimeField(
         help_text="""The timestamp at which
@@ -351,7 +365,7 @@ class MushroomHarvestSerializer(MushRNodeSerializer):
     is_harvested_from = MushRTraversalSerializer(
         read_only=True,
         child=MushRIsDescendentOfRelationshipSerializer())
-    
+
 
 class SensorSerializer(MushRNodeSerializer):
 
