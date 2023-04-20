@@ -9,14 +9,17 @@ from neomodel import (RelationshipManager, OUTGOING, INCOMING)
 from neomodel import (StringProperty, UniqueIdProperty,
                       DateTimeProperty, FloatProperty)
 from neomodel import db
+from rest_framework.exceptions import ValidationError
 
 import types
 
 
-class MushRException(Exception):
+class MushRException(ValidationError):
     """Exception specific to MushR validation
 
     """
+    default_detail = "Exception in validating a MushR Action"
+    default_code = "mushr_exception"
 
 
 def custom_rel_merge_helper(lhs, rhs,

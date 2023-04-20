@@ -25,7 +25,8 @@ from mushr_digitaltwin.serializers import (LocationSerializer,
                                            SensorSerializer,
                                            MushRIsLocatedAtRelationshipSerializer,
                                            MushRIsDescendentOfRelationshipSerializer)
-from rest_framework import serializers
+import drf_standardized_errors.openapi_serializers as drf_openapi_serializers
+import rest_framework.exceptions as drf_exceptions
 from neomodel import db
 import datetime
 from django.http import Http404
@@ -290,29 +291,31 @@ class CreateSpawn(MushRNodeBaseAPIView):
     def mushr_model(self):
         return Spawn
 
-    @swagger_auto_schema(responses={200: SpawnSerializer})
+    @swagger_auto_schema(
+        request_body=SpawnSerializer,
+        responses={
+            200: SpawnSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
     def post(self, request, spawn_container_uid, **kwargs):
-        """Create Spawn and automatically put it in a free
+        """Create Spawn and automatically put it in an empty
         SpawnContainer.
 
-        `spawn_container_uid`: UID of a free spawn container. See TODO
+        `spawn_container_uid`: UID of a free spawn container.
+
+        See /spawn_container/empty
 
         """
         serializer = SpawnSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=False):
+        if serializer.is_valid(raise_exception=True):
             try:
                 spawn = Spawn.create_new(serializer.validated_data,
                                          spawn_container_uid)
                 serializer = SpawnSerializer(spawn)
                 return Response(serializer.data)
             except SpawnContainer.DoesNotExist:
-                return Response({"spawn_container": [
-                    f"SpawnContainer(uid={spawn_container_uid}) does not exist"
-                ]}, status=404)
-            except MushRException as E:
-                return Response({"mushr_exception": [str(E)]}, status=400)
-        else:
-            return Response(serializer.errors, status=400)
+                raise drf_exceptions.NotFound(
+                    f"SpawnContainer(uid={spawn_container_uid}) does not exist")
 
 
 class StrainUIDs(MushRNodeUIDs):
