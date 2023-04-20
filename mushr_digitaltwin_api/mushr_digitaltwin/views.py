@@ -68,7 +68,7 @@ class MushRNodeUIDs(APIView):
                 yield instance.uid
 
         except (self.mushr_model.DoesNotExist):
-            raise Http404
+            raise drf_exceptions.NotFound()
 
     def get(self, request, timestamp=None):
         return Response(self.yield_uids(timestamp))
@@ -101,13 +101,13 @@ class MushRRelationshipInstance(APIView):
             return results[0][0]
 
         except IndexError:
-            raise Http404
+            raise drf_exceptions.NotFound(
+                f"Relationship with id={id} not found")
 
     def get(self, request, id, format=None):
         relationship = self.get_relationship(id)
         serializer = MushRRelationshipInstance.serializer_map[
             type(relationship)](relationship)
-
         return Response(serializer.data)
 
     def put(self, request, id, **kwargs):
@@ -121,6 +121,42 @@ class MushRRelationshipInstance(APIView):
             return Response(serializer.data)
         else:
             return Response(serializer.errors, status=400)
+
+
+class MushRIsDescendentOfRelationshipInstance(MushRRelationshipInstance):
+
+    @swagger_auto_schema(
+        responses={
+            200: MushRIsDescendentOfRelationshipSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, id, format=None):
+        return super().get(request, id, format)
+
+    @swagger_auto_schema(
+        responses={
+            200: MushRIsDescendentOfRelationshipSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, id, **kwargs):
+        return super().put(request, id, **kwargs)
+
+
+class MushRIsLocatedAtRelationshipInstance(MushRRelationshipInstance):
+
+    @swagger_auto_schema(
+        responses={
+            200: MushRIsLocatedAtRelationshipSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, id, format=None):
+        return super().get(request, id, format)
+
+    @swagger_auto_schema(
+        responses={
+            200: MushRIsLocatedAtRelationshipSerializer,
+            400: drf_openapi_serializers.ValidationErrorSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, id, **kwargs):
+        return super().put(request, id, **kwargs)
 
 
 class MushRNodeBaseAPIView(APIView):
@@ -146,6 +182,7 @@ class MushRNodeBaseAPIView(APIView):
 
 
 class MushRNodeCreationAPIView(MushRNodeBaseAPIView):
+    
     def post(self, request, **kwargs):
         serializer = MushRInstance.serializer_map[self.mushr_model
                                                   ](data=request.data)
@@ -177,11 +214,9 @@ class MushRInstance(MushRNodeBaseAPIView):
                                                   ](node,
                                                     data=request.data,
                                                     partial=True)
-        if serializer.is_valid(raise_exception=False):
+        if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
-        else:
-            return Response(serializer.errors, status=400)
 
 
 class LocationUIDs(MushRNodeUIDs):
@@ -195,6 +230,21 @@ class LocationInstance(MushRInstance):
     def mushr_model(self):
         return Location
 
+    @swagger_auto_schema(
+        responses={200: LocationSerializer,
+                   404: drf_openapi_serializers.ValidationErrorSerializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=LocationSerializer,
+        responses={
+            200: LocationSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
 
 class GrowChamberUIDs(MushRNodeUIDs):
     @property
@@ -206,6 +256,21 @@ class GrowChamberInstance(MushRInstance):
     @property
     def mushr_model(self):
         return GrowChamber
+
+    @swagger_auto_schema(
+        responses={200: GrowChamberSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=GrowChamberSerializer,
+        responses={
+            200: GrowChamberSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
 
 
 class CreateGrowChamberInstance(MushRNodeCreationAPIView):
@@ -225,6 +290,21 @@ class StorageLocationInstance(MushRInstance):
     def mushr_model(self):
         return StorageLocation
 
+    @swagger_auto_schema(
+        responses={200: StorageLocationSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=StorageLocationSerializer,
+        responses={
+            200: StorageLocationSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
 
 class CreateStorageLocationInstance(MushRNodeCreationAPIView):
     @property
@@ -243,6 +323,21 @@ class MyceliumSampleInstance(MushRInstance):
     def mushr_model(self):
         return MyceliumSample
 
+    @swagger_auto_schema(
+        responses={200: MyceliumSampleSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=MyceliumSampleSerializer,
+        responses={
+            200: MyceliumSampleSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
 
 class SpawnUIDs(MushRNodeUIDs):
     @property
@@ -254,6 +349,22 @@ class SpawnInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Spawn
+
+    @swagger_auto_schema(
+        responses={200: SpawnSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=SpawnSerializer,
+        responses={
+            200: SpawnSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
 
 
 class ActiveSpawnUIDs(SpawnUIDs):
@@ -329,6 +440,21 @@ class StrainInstance(MushRInstance):
     def mushr_model(self):
         return Strain
 
+    @swagger_auto_schema(
+        responses={200: StrainSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=StrainSerializer,
+        responses={
+            200: StrainSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
 
 class CreateStrainInstance(MushRNodeCreationAPIView):
     @property
@@ -361,6 +487,22 @@ class SpawnContainerInstance(MushRInstance):
     def mushr_model(self):
         return SpawnContainer
 
+    @swagger_auto_schema(
+        responses={200: SpawnContainerSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=SpawnContainerSerializer,
+        responses={
+            200: SpawnContainerSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
+
 
 class CreateSpawnContainerInstance(MushRNodeCreationAPIView):
     @property
@@ -378,6 +520,22 @@ class SubstrateContainerInstance(MushRInstance):
     @property
     def mushr_model(self):
         return SubstrateContainer
+
+    @swagger_auto_schema(
+        responses={200: SubstrateContainerSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=SubstrateContainerSerializer,
+        responses={
+            200: SubstrateContainerSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
 
 
 class FreeSubstrateContainerUIDs(SubstrateContainerUIDs):
@@ -399,6 +557,12 @@ class CreateSubstrateContainerInstance(MushRNodeBaseAPIView):
     def mushr_model(self):
         return SubstrateContainer
 
+    @swagger_auto_schema(
+        request_body=SubstrateContainerSerializer,
+        responses={
+            200: SubstrateContainerSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
     def post(self, request, num_fruiting_holes, **kwargs):
         """Create a SubstrateContainer and automatically create its
         FruitingHoles.
@@ -409,14 +573,12 @@ class CreateSubstrateContainerInstance(MushRNodeBaseAPIView):
         # Create a temporary serializer to validate attributes of the
         # substrate_container
         serializer = SubstrateContainerSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=False):
+        if serializer.is_valid(raise_exception=True):
             substrate_container = SubstrateContainer.create_with_fh(
                 serializer.validated_data, num_fruiting_holes)
             # Initialize the "real" serializer
             serializer = SubstrateContainerSerializer(substrate_container)
             return Response(serializer.data)
-        else:
-            return Response(serializer.errors, status=400)
 
 
 class SubstrateUIDs(MushRNodeUIDs):
@@ -429,6 +591,22 @@ class SubstrateInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Substrate
+
+    @swagger_auto_schema(
+        responses={200: SubstrateSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=SubstrateSerializer,
+        responses={
+            200: SubstrateSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
 
 
 class ActiveSubstrateUIDs(SubstrateUIDs):
@@ -466,6 +644,12 @@ class CreateSubstrate(MushRNodeBaseAPIView):
     def mushr_model(self):
         return Substrate
 
+    @swagger_auto_schema(
+        request_body=SubstrateSerializer,
+        responses={
+            200: SubstrateSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
     def post(self, request, substrate_container_uid, **kwargs):
         """Create Substrate and automatically put it in a free
         SubstrateContainer.
@@ -475,20 +659,15 @@ class CreateSubstrate(MushRNodeBaseAPIView):
 
         """
         serializer = SubstrateSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=False):
+        if serializer.is_valid(raise_exception=True):
             try:
                 substrate = Substrate.create_new(serializer.validated_data,
                                                  substrate_container_uid)
                 serializer = SubstrateSerializer(substrate)
                 return Response(serializer.data)
             except SubstrateContainer.DoesNotExist:
-                return Response({"substrate_container": [
-                    f"SubstrateContainer(uid={substrate_container_uid}) does not exist"
-                ]}, status=404)
-            except MushRException as E:
-                return Response({"mushr_exception": [str(E)]}, status=400)
-        else:
-            return Response(serializer.errors, status=400)
+                raise drf_exceptions.NotFound(
+                    f"SubstrateContainer(uid={substrate_container_uid}) does not exist")
 
 
 class FruitingHoleUIDs(MushRNodeUIDs):
@@ -502,6 +681,22 @@ class FruitingHoleInstance(MushRInstance):
     def mushr_model(self):
         return FruitingHole
 
+    @swagger_auto_schema(
+        responses={200: FruitingHoleSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=FruitingHoleSerializer,
+        responses={
+            200: FruitingHoleSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
+
 
 class FlushUIDs(MushRNodeUIDs):
     @property
@@ -513,6 +708,22 @@ class FlushInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Flush
+
+    @swagger_auto_schema(
+        responses={200: FlushSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=FlushSerializer,
+        responses={
+            200: FlushSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
 
 
 class MushroomHarvestUIDs(MushRNodeUIDs):
@@ -526,6 +737,21 @@ class MushroomHarvestInstance(MushRInstance):
     def mushr_model(self):
         return MushroomHarvest
 
+    @swagger_auto_schema(
+        responses={200: MushroomHarvestSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=MushroomHarvestSerializer,
+        responses={
+            200: MushroomHarvestSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+
 
 class SensorUIDs(MushRNodeUIDs):
     @property
@@ -537,3 +763,19 @@ class SensorInstance(MushRInstance):
     @property
     def mushr_model(self):
         return Sensor
+
+    @swagger_auto_schema(
+        responses={200: SensorSerializer,
+                   404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, format=None):
+        return super().get(request, uid, format)
+
+    @swagger_auto_schema(
+        request_body=SensorSerializer,
+        responses={
+            200: SensorSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def put(self, request, uid, **kwargs):
+        return super().put(request, uid, **kwargs)
+

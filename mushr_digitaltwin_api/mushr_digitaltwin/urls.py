@@ -83,5 +83,6 @@ urlpatterns = [
 
     # Paths for specific relationships
 
-    path("relationship/<int:id>", views.MushRRelationshipInstance.as_view()),
+    path("is_descendent_of_relationship/<int:id>", views.MushRIsDescendentOfRelationshipInstance.as_view()),
+    path("is_located_at_relationship/<int:id>", views.MushRIsLocatedAtRelationshipInstance.as_view()),
 ]
