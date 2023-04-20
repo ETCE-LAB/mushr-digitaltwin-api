@@ -27,11 +27,13 @@ class MushRRelationshipSerializer(serializers.Serializer):
     __relationship_type__ = serializers.CharField(read_only=True)
 
     __start_node__ = MushRUIDSerializer(read_only=True)
-    __start_node_labels__ = serializers.ListField(child=serializers.CharField()
-                                                  read_only=True)
+    __start_node_labels__ = serializers.ListField(
+        child=serializers.CharField(),
+        read_only=True)
     __end_node__ = MushRUIDSerializer(read_only=True)
-    __end_node_labels__ = serializers.ListField(child=serializers.CharField()
-                                                read_only=True)
+    __end_node_labels__ = serializers.ListField(
+        child=serializers.CharField(),
+        read_only=True)
 
     def update(self, instance, validated_data):
         for key, value in validated_data.items():
