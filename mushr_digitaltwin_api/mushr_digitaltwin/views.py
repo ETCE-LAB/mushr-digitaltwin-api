@@ -9,6 +9,7 @@ from mushr_digitaltwin.models import (Location, GrowChamber,
                                       IsSensingIn, IsDescendentOf,
                                       FruitsFrom, IsHarvestedFrom,
                                       IsInnoculatedFrom)
+
 from mushr_digitaltwin.serializers import (LocationSerializer,
                                            GrowChamberSerializer,
                                            StorageLocationSerializer,
@@ -26,6 +27,7 @@ from mushr_digitaltwin.serializers import (LocationSerializer,
                                            MushRIsDescendentOfRelationshipSerializer)
 import drf_standardized_errors.openapi_serializers as drf_openapi_serializers
 import rest_framework.exceptions as drf_exceptions
+import rest_framework.serializers as drf_serializers
 from neomodel import db
 import datetime
 from django.http import Http404
@@ -35,13 +37,7 @@ from drf_yasg.utils import swagger_auto_schema
 
 
 class MushRNodeUIDs(APIView):
-    """Returns a List of all MushR Node UIDs that were created on or
-    before ISO 8601 `timestamp`. If `timestamp` is not specified, then
-    current system time is assumed.
 
-    [uid:<string:MushR Internal Node UUID4 hexvalue>]
-
-    """
     @property
     def mushr_model(self):
         return None
@@ -69,7 +65,14 @@ class MushRNodeUIDs(APIView):
         except (self.mushr_model.DoesNotExist):
             raise drf_exceptions.NotFound()
 
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs"})
     def get(self, request, timestamp=None):
+        """Returns a List of all MushR Node UIDs that were created on
+        or before ISO 8601 `timestamp`. If `timestamp` is not
+        specified, then current system time is assumed.
+
+        """
         return Response(self.yield_uids(timestamp))
 
 
@@ -115,11 +118,9 @@ class MushRRelationshipInstance(APIView):
             type(relationship)](relationship,
                                 data=request.data,
                                 partial=True)
-        if serializer.is_valid(raise_exception=False):
+        if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
-        else:
-            return Response(serializer.errors, status=400)
 
 
 class MushRIsDescendentOfRelationshipInstance(MushRRelationshipInstance):
@@ -181,15 +182,12 @@ class MushRNodeBaseAPIView(APIView):
 
 
 class MushRNodeCreationAPIView(MushRNodeBaseAPIView):
-    
     def post(self, request, **kwargs):
         serializer = MushRInstance.serializer_map[self.mushr_model
                                                   ](data=request.data)
-        if serializer.is_valid(raise_exception=False):
+        if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
-        else:
-            return Response(serializer.errors, status=400)
 
 
 class MushRInstance(MushRNodeBaseAPIView):
@@ -200,7 +198,8 @@ class MushRInstance(MushRNodeBaseAPIView):
         try:
             return self.mushr_model.nodes.get(uid=uid)
         except (self.mushr_model.DoesNotExist, AttributeError):
-            raise Http404
+            raise drf_exceptions.NotFound(
+                f"{self.mushr_model}(uid={uid}) does not exist")
 
     def get(self, request, uid, format=None):
         node = self.get_node(uid)
@@ -277,6 +276,14 @@ class CreateGrowChamberInstance(MushRNodeCreationAPIView):
     def mushr_model(self):
         return GrowChamber
 
+    @swagger_auto_schema(
+        request_body=GrowChamberSerializer,
+        responses={
+            200: GrowChamberSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer})
+    def post(self, request, **kwargs):
+        return super().post(request, **kwargs)
+
 
 class StorageLocationUIDs(MushRNodeUIDs):
     @property
@@ -309,6 +316,14 @@ class CreateStorageLocationInstance(MushRNodeCreationAPIView):
     @property
     def mushr_model(self):
         return StorageLocation
+
+    @swagger_auto_schema(
+        request_body=StorageLocationSerializer,
+        responses={
+            200: StorageLocationSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer})
+    def post(self, request, **kwargs):
+        return super().post(request, **kwargs)
 
 
 class MyceliumSampleUIDs(MushRNodeUIDs):
@@ -365,13 +380,7 @@ class SpawnInstance(MushRInstance):
         return super().put(request, uid, **kwargs)
 
 
-
 class ActiveSpawnUIDs(SpawnUIDs):
-    """Returns a list of Spawn UIDs which are not discarded at
-     `timestamp`. If `timestamp` is not specified, then current system
-     time is assumed.
-
-    """
     def yield_uids(self, timestamp):
         if not timestamp:
             timestamp = datetime.datetime.now()
@@ -380,13 +389,18 @@ class ActiveSpawnUIDs(SpawnUIDs):
                 timestamp):
             yield spawn.uid
 
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs"})
+    def get(self, request, timestamp=None):
+        """Returns a list of Spawn UIDs which are not discarded at
+        `timestamp`. If `timestamp` is not specified, then current
+        system time is assumed.
+
+        """
+        return (super().get(request, timestamp))
+
 
 class InnoculableSpawnUIDs(SpawnUIDs):
-    """Returns a list of Spawn UIDs which are not discarded and have
-     not been innoculated at `timestamp`. If `timestamp` is not
-     specified, then current system time is assumed.
-
-    """
     def yield_uids(self, timestamp):
         if not timestamp:
             timestamp = datetime.datetime.now()
@@ -394,6 +408,16 @@ class InnoculableSpawnUIDs(SpawnUIDs):
         for spawn in Spawn.get_innoculable_spawn(
                 timestamp):
             yield spawn.uid
+
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs"})
+    def get(self, request, timestamp=None):
+        """Returns a list of Spawn UIDs which are not discarded and
+        have not been innoculated at `timestamp`. If `timestamp` is
+        not specified, then current system time is assumed.
+
+        """
+        return (super().get(request, timestamp))
 
 
 class CreateSpawn(MushRNodeBaseAPIView):
@@ -460,6 +484,14 @@ class CreateStrainInstance(MushRNodeCreationAPIView):
     def mushr_model(self):
         return Strain
 
+    @swagger_auto_schema(
+        request_body=StrainSerializer,
+        responses={
+            200: StrainSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer})
+    def post(self, request, **kwargs):
+        return super().post(request, **kwargs)
+
 
 class SpawnContainerUIDs(MushRNodeUIDs):
     @property
@@ -502,11 +534,18 @@ class SpawnContainerInstance(MushRInstance):
         return super().put(request, uid, **kwargs)
 
 
-
 class CreateSpawnContainerInstance(MushRNodeCreationAPIView):
     @property
     def mushr_model(self):
         return SpawnContainer
+
+    @swagger_auto_schema(
+        request_body=SpawnContainerSerializer,
+        responses={
+            200: SpawnContainerSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer})
+    def post(self, request, **kwargs):
+        return super().post(request, **kwargs)
 
 
 class SubstrateContainerUIDs(MushRNodeUIDs):
@@ -534,7 +573,6 @@ class SubstrateContainerInstance(MushRInstance):
             404: drf_openapi_serializers.ErrorResponse404Serializer})
     def put(self, request, uid, **kwargs):
         return super().put(request, uid, **kwargs)
-
 
 
 class FreeSubstrateContainerUIDs(SubstrateContainerUIDs):
@@ -607,13 +645,7 @@ class SubstrateInstance(MushRInstance):
         return super().put(request, uid, **kwargs)
 
 
-
 class ActiveSubstrateUIDs(SubstrateUIDs):
-    """Returns a list of Substrate UIDs which are not discarded at
-     `timestamp`. If `timestamp` is not specified, then current system
-     time is assumed.
-
-    """
     def yield_uids(self, timestamp):
         if not timestamp:
             timestamp = datetime.datetime.now()
@@ -622,13 +654,18 @@ class ActiveSubstrateUIDs(SubstrateUIDs):
                 timestamp):
             yield substrate.uid
 
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs"})
+    def get(self, request, timestamp=None):
+        """Returns a list of Substrate UIDs which are not discarded at
+        `timestamp`. If `timestamp` is not specified, then current
+        system time is assumed.
+
+        """
+        return (super().get(request, timestamp))
+
 
 class InnoculableSubstrateUIDs(SubstrateUIDs):
-    """Returns a list of Substrate UIDs which are not discarded and have
-     not been innoculated at `timestamp`. If `timestamp` is not
-     specified, then current system time is assumed.
-
-    """
     def yield_uids(self, timestamp):
         if not timestamp:
             timestamp = datetime.datetime.now()
@@ -636,6 +673,16 @@ class InnoculableSubstrateUIDs(SubstrateUIDs):
         for substrate in Substrate.get_innoculable_substrate(
                 timestamp):
             yield substrate.uid
+
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs"})
+    def get(self, request, timestamp=None):
+        """Returns a list of Substrate UIDs which are not discarded
+        and have not been innoculated at `timestamp`. If `timestamp`
+        is not specified, then current system time is assumed.
+
+        """
+        return (super().get(request, timestamp))
 
 
 class CreateSubstrate(MushRNodeBaseAPIView):
@@ -696,7 +743,6 @@ class FruitingHoleInstance(MushRInstance):
         return super().put(request, uid, **kwargs)
 
 
-
 class FlushUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
@@ -722,7 +768,6 @@ class FlushInstance(MushRInstance):
             404: drf_openapi_serializers.ErrorResponse404Serializer})
     def put(self, request, uid, **kwargs):
         return super().put(request, uid, **kwargs)
-
 
 
 class MushroomHarvestUIDs(MushRNodeUIDs):
@@ -777,4 +822,3 @@ class SensorInstance(MushRInstance):
             404: drf_openapi_serializers.ErrorResponse404Serializer})
     def put(self, request, uid, **kwargs):
         return super().put(request, uid, **kwargs)
-
