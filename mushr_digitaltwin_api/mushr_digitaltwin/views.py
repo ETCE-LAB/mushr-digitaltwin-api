@@ -9,7 +9,6 @@ from mushr_digitaltwin.models import (Location, GrowChamber,
                                       IsSensingIn, IsDescendentOf,
                                       FruitsFrom, IsHarvestedFrom,
                                       IsInnoculatedFrom)
-from mushr_digitaltwin.models import MushRException
 from mushr_digitaltwin.serializers import (LocationSerializer,
                                            GrowChamberSerializer,
                                            StorageLocationSerializer,
