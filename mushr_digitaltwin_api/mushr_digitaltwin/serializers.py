@@ -1,8 +1,7 @@
 from rest_framework import serializers
 from neomodel import db
 from mushr_digitaltwin.models import (GrowChamber, StorageLocation,
-                                      Strain, SpawnContainer,
-                                      SubstrateContainer)
+                                      Strain, SpawnContainer)
 
 
 class MushRUIDSerializer(serializers.CharField):
@@ -17,6 +16,7 @@ class MushRRelationshipSerializer(serializers.Serializer):
         instance.__start_node__ = instance.start_node()
         instance.__start_node_labels__ = instance.start_node().labels
         instance.__end_node__ = instance.end_node()
+        instance.__end_node_labels__ = instance.end_node().labels
         return (super(MushRRelationshipSerializer,
                       self).to_representation(instance))
 
@@ -27,9 +27,11 @@ class MushRRelationshipSerializer(serializers.Serializer):
     __relationship_type__ = serializers.CharField(read_only=True)
 
     __start_node__ = MushRUIDSerializer(read_only=True)
-    __start_node_labels__ = serializers.ListField(child=serializers.CharField(),
+    __start_node_labels__ = serializers.ListField(child=serializers.CharField()
                                                   read_only=True)
     __end_node__ = MushRUIDSerializer(read_only=True)
+    __end_node_labels__ = serializers.ListField(child=serializers.CharField()
+                                                read_only=True)
 
     def update(self, instance, validated_data):
         for key, value in validated_data.items():
