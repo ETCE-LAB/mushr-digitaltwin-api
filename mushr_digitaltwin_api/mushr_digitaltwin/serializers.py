@@ -14,9 +14,11 @@ class MushRRelationshipSerializer(serializers.Serializer):
     def to_representation(self, instance):
         instance.__relationship_type__ = str(type(instance).__name__)
         instance.__start_node__ = instance.start_node()
-        instance.__start_node_labels__ = instance.start_node().labels
+        instance.__start_node_labels__ = reversed(
+            instance.start_node().inherited_labels())
         instance.__end_node__ = instance.end_node()
-        instance.__end_node_labels__ = instance.end_node().labels
+        instance.__end_node_labels__ = reversed(
+            instance.end_node().inherited_labels())
         return (super(MushRRelationshipSerializer,
                       self).to_representation(instance))
 
