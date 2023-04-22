@@ -60,6 +60,7 @@ urlpatterns = [
     path("spawn_container/empty/<ISO8601DateTime:timestamp>", views.FreeSpawnContainerUIDs.as_view()),
     path("spawn_container/<ISO8601DateTime:timestamp>", views.SpawnContainerUIDs.as_view()),
     path("spawn_container/<uid>/", views.SpawnContainerInstance.as_view()),
+    path("spawn_container/<uid>/change_storage_location/<location_uid>", views.ChangeSpawnContainerStorageLocation.as_view()),
 
     path("substrate_container/", views.SubstrateContainerUIDs.as_view()),
     path("substrate_container/create/<int:num_fruiting_holes>", views.CreateSubstrateContainerInstance.as_view()),
@@ -67,6 +68,7 @@ urlpatterns = [
     path("substrate_container/empty/<ISO8601DateTime:timestamp>", views.FreeSubstrateContainerUIDs.as_view()),
     path("substrate_container/<ISO8601DateTime:timestamp>", views.SubstrateContainerUIDs.as_view()),
     path("substrate_container/<uid>/", views.SubstrateContainerInstance.as_view()),
+    path("substrate_container/<uid>/change_storage_location/<location_uid>", views.ChangeSubstrateContainerStorageLocation.as_view()),
 
     path("fruiting_hole/", views.FruitingHoleUIDs.as_view()),
     path("fruiting_hole/<ISO8601DateTime:timestamp>", views.FruitingHoleUIDs.as_view()),

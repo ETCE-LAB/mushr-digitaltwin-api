@@ -356,9 +356,9 @@ class SpawnContainer(DjangoNode):
         (spawnContainer:SpawnContainer) WHERE
         id(spawnContainer) = $self MATCH
         (spawnContainer)-[rel:IS_LOCATED_AT]->(l:Location) WHERE
-        NOT EXISTS(rel.end) return l, rel""")
+        NOT EXISTS(rel.end) return l""")
 
-        return [(Location.inflate(row[0]), IsLocatedAt.inflate(row[1]))
+        return [Location.inflate(row[0])
                 for row in results]
 
     @staticmethod
@@ -419,10 +419,10 @@ class SpawnContainer(DjangoNode):
         new_location = Location.nodes.get_or_none(uid=location_uid)
 
         if not new_location:
-            raise """Location UID does not correspond to any
-            StorageLocation"""
+            raise MushRException(f"Location(uid={location_uid}) does \
+            not exist")
 
-        current_location = self.current_location()
+        current_location = self.current_location
         if not current_location:
             if transaction:
                 with db.transaction:
@@ -434,11 +434,11 @@ class SpawnContainer(DjangoNode):
                 return rel
 
         elif len(current_location) > 1:
-            raise """SpawnContainer is erroneously located at
-            multiple Locations"""
+            raise MushRException("SpawnContainer is erroneously \
+            located at multiple Locations")
 
-        current_location, location_rel = (current_location[0][0],
-                                          current_location[0][1])
+        current_location = current_location[0]
+        location_rel = self.is_located_at.relationship(current_location)
 
         if transaction:
             with db.transaction:
@@ -692,9 +692,9 @@ class SubstrateContainer(DjangoNode):
         (substrateContainer:SubstrateContainer) WHERE
         id(substrateContainer) = $self WITH substrateContainer MATCH
         (substrateContainer)-[rel:IS_LOCATED_AT]->(l:Location) WHERE
-        NOT EXISTS(rel.end) return l, rel""")
+        NOT EXISTS(rel.end) return l""")
 
-        return [(Location.inflate(row[0]), IsLocatedAt.inflate(row[1]))
+        return [Location.inflate(row[0])
                 for row in results]
 
     def change_storage_location(self, location_uid, transaction=False):
@@ -709,10 +709,10 @@ class SubstrateContainer(DjangoNode):
         new_location = Location.nodes.get_or_none(uid=location_uid)
 
         if not new_location:
-            raise """Location UID does not correspond to any
-            StorageLocation"""
+            raise MushRException(f"Location(uid={location_uid}) \
+does not exist")
 
-        current_location = self.current_location()
+        current_location = self.current_location
         if not current_location:
             if transaction:
                 with db.transaction:
@@ -724,11 +724,12 @@ class SubstrateContainer(DjangoNode):
                 return rel
 
         elif len(current_location) > 1:
-            raise """SubstrateContainer is erroneously located at
-            multiple Locations"""
+            raise MushRException("SubstrateContainer is erroneously \
+            located at multiple Locations")
 
-        current_location, location_rel = (current_location[0][0],
-                                          current_location[0][1])
+        current_location = current_location[0]
+
+        location_rel = self.is_located_at.relationship(current_location)
 
         if transaction:
             with db.transaction:

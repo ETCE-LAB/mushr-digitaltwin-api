@@ -566,6 +566,36 @@ class CreateSpawnContainerInstance(MushRNodeCreationAPIView):
         return super().post(request, **kwargs)
 
 
+class ChangeSpawnContainerStorageLocation(APIView):
+
+    @swagger_auto_schema(
+        request_body=None,
+        responses={
+            200: SpawnContainerSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def post(self, request, uid, location_uid):
+        """Change storage location of the SpawnContainer
+
+        `uid` should be a UID of a SpawnContainer
+
+        `location_uid` should be a UID of a `Location` (or any
+        sub-type of `Location`) node, referring to the new storage
+        location
+
+        """
+        try:
+            spawn_container = SpawnContainer.nodes.get(uid=uid)
+        except SpawnContainer.DoesNotExist:
+            raise drf_exceptions.NotFound(f"SpawnContainer(uid={uid}) \
+does not exist")
+
+        _ = spawn_container.change_storage_location(
+            location_uid,
+            transaction=True)
+        return Response(SpawnContainerSerializer(spawn_container).data)
+
+
 class SubstrateContainerUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
@@ -636,6 +666,36 @@ class CreateSubstrateContainerInstance(MushRNodeBaseAPIView):
             # Initialize the "real" serializer
             serializer = SubstrateContainerSerializer(substrate_container)
             return Response(serializer.data)
+
+
+class ChangeSubstrateContainerStorageLocation(APIView):
+
+    @swagger_auto_schema(
+        request_body=None,
+        responses={
+            200: SubstrateContainerSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def post(self, request, uid, location_uid):
+        """Change storage location of the SubstrateContainer
+
+        `uid` should be a UID of a SubstrateContainer
+
+        `location_uid` should be a UID of a `Location` (or any
+        sub-type of `Location`) node, referring to the new storage
+        location
+
+        """
+        try:
+            substrate_container = SubstrateContainer.nodes.get(uid=uid)
+        except SubstrateContainer.DoesNotExist:
+            raise drf_exceptions.NotFound(f"SubstrateContainer(uid={uid}) \
+does not exist")
+
+        _ = substrate_container.change_storage_location(
+            location_uid,
+            transaction=True)
+        return Response(SubstrateContainerSerializer(substrate_container).data)
 
 
 class SubstrateUIDs(MushRNodeUIDs):

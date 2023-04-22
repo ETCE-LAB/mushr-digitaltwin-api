@@ -19,6 +19,7 @@ class MushRRelationshipSerializer(serializers.Serializer):
         instance.__end_node__ = instance.end_node()
         instance.__end_node_labels__ = reversed(
             instance.end_node().inherited_labels())
+        print(instance)
         return (super(MushRRelationshipSerializer,
                       self).to_representation(instance))
 
@@ -47,12 +48,15 @@ class MushRRelationshipSerializer(serializers.Serializer):
 class MushRTraversalSerializer(serializers.ListField):
     def to_representation(self, instance):
         traversal = instance._new_traversal()
-        connected_nodes = traversal.all()
+        # Get a list of unique connected nodes (Sometimes
+        # traversal.all returns duplicate nodes)
+        connected_nodes = {node.uid: node for node in traversal.all()}
         instance = [instance.all_relationships(node)
-                    for node in connected_nodes]
+                    for node in connected_nodes.values()]
         instance = [relationship_instance
                     for relationship_instances in instance
                     for relationship_instance in relationship_instances]
+
         return (super(MushRTraversalSerializer,
                       self).to_representation(instance))
 
@@ -76,6 +80,9 @@ class MushRIsInnoculatedFromRelationshipSerializer(
 
 
 class MushRIsLocatedAtRelationshipSerializer(MushRRelationshipSerializer):
+    def to_representation(self, instance):
+        return (super(MushRIsLocatedAtRelationshipSerializer,
+                      self).to_representation(instance))
     start = serializers.DateTimeField(
         help_text="""The start time of the time period during which
         the MushR Asset is located at the Location""",
@@ -275,6 +282,10 @@ class SubstrateContainerSerializer(MushRNodeSerializer):
     description = serializers.CharField(
         required=False,
         help_text="""A description of the container""")
+
+    name = serializers.CharField(
+        required=False,
+        help_text="""A name for the container""")
 
     volume = serializers.FloatField(
         required=True,
