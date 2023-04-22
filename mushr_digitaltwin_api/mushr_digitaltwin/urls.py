@@ -95,4 +95,6 @@ urlpatterns = [
 
     # Actions
     path("innoculate/<innoculant_uid>/<recipient_container_uid>", views.Innoculate.as_view()),
+    path("discard_spawn/<spawn_container_uid>", views.DiscardSpawn.as_view()),
+    path("discard_substrate/<substrate_container_uid>", views.DiscardSubstrate.as_view()),
 ]

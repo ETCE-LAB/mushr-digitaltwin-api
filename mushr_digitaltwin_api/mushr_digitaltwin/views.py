@@ -11,6 +11,7 @@ from mushr_digitaltwin.models import (Location, GrowChamber,
                                       IsInnoculatedFrom)
 
 from mushr_digitaltwin.models import innoculate
+from mushr_digitaltwin.models import MushRException
 
 from mushr_digitaltwin.serializers import (
     LocationSerializer, GrowChamberSerializer, StorageLocationSerializer,
@@ -469,6 +470,41 @@ class CreateSpawn(MushRNodeBaseAPIView):
 does not exist")
 
 
+class DiscardSpawn(APIView):
+
+    @swagger_auto_schema(
+        request_body=None,
+        responses={
+            200: SpawnSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def delete(self, request, spawn_container_uid, **kwargs):
+        """Discard Spawn
+
+        <container_uid>: UID of SpawnContainer containing the Spawn
+        being discarded
+
+        """
+        spawn_container = SpawnContainer.nodes.get_or_none(
+            uid=spawn_container_uid)
+
+        if not spawn_container:
+            raise drf_exceptions.NotFound(
+                f"SpawnContainer(uid={spawn_container_uid}) does not exist")
+        spawn = spawn_container.current_spawn
+        if not spawn:
+            raise MushRException(f"SpawnContainer(uid={spawn_container_uid} \
+does not currently contain any spawn)")
+
+        if len(spawn) > 1:
+            raise MushRException(f"SpawnContainer(uid={spawn_container_uid}) \
+erroneously contains multiple spawn")
+
+        spawn = spawn[0]
+        spawn.discard()
+        return Response(SpawnSerializer(spawn).data)
+
+
 class StrainUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
@@ -815,6 +851,42 @@ class CreateSubstrate(MushRNodeBaseAPIView):
                 raise drf_exceptions.NotFound(
                     f"SubstrateContainer(uid={substrate_container_uid})\
 does not exist")
+
+
+class DiscardSubstrate(APIView):
+
+    @swagger_auto_schema(
+        request_body=None,
+        responses={
+            200: SubstrateSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def delete(self, request, substrate_container_uid, **kwargs):
+        """Discard Substrate
+
+        <container_uid>: UID of SubstrateContainer containing the
+        Substrate being discarded
+
+        """
+        substrate_container = SubstrateContainer.nodes.get_or_none(
+            uid=substrate_container_uid)
+
+        if not substrate_container:
+            raise drf_exceptions.NotFound(
+                f"SubstrateContainer(uid={substrate_container_uid}) \
+does not exist")
+        substrate = substrate_container.current_substrate
+        if not substrate:
+            raise MushRException(f"SubstrateContainer(uid={substrate_container_uid} \
+does not currently contain any substrate)")
+
+        if len(substrate) > 1:
+            raise MushRException(f"SubstrateContainer(uid={substrate_container_uid}) \
+erroneously contains multiple substrate")
+
+        substrate = substrate[0]
+        substrate.discard()
+        return Response(SubstrateSerializer(substrate).data)
 
 
 class FruitingHoleUIDs(MushRNodeUIDs):

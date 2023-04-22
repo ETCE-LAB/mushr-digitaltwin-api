@@ -481,7 +481,6 @@ class Spawn(MyceliumSample):
 
     @property
     def container(self):
-
         """Returns the current container
 
         """
@@ -550,7 +549,7 @@ class Spawn(MyceliumSample):
         innoculated_later_spawn, meta = db.cypher_query(
             """MATCH ()<-[R2:IS_INNOCULATED_FROM]-(sp:Spawn)-[R:IS_CONTAINED_BY]->(spc)
             WHERE (R.start <= $timestamp
-            AND (NOT exists(R.end) OR R.end <= $timestamp))
+            AND (NOT exists(R.end) OR R.end >= $timestamp))
             AND R2.timestamp > $timestamp
              return sp""",
             {"timestamp": timestamp.timestamp()},
@@ -573,7 +572,7 @@ class Spawn(MyceliumSample):
         innoculated_spawn, meta = db.cypher_query(
             """MATCH ()<-[R2:IS_INNOCULATED_FROM]-(sp:Spawn)-[R:IS_CONTAINED_BY]->(spc)
             WHERE (R.start <= $timestamp
-            AND (NOT exists(R.end) OR R.end <= $timestamp))
+            AND (NOT exists(R.end) OR R.end >= $timestamp))
             AND R2.timestamp <= $timestamp
             return sp""",
             {"timestamp": timestamp.timestamp()},
@@ -608,13 +607,13 @@ occupied with Spawn(uid={current_spawn[0].uid})")
 
         """
         try:
-            substrate_container = self.is_contained_by.all()[0]
+            spawn_container = self.container
         except IndexError:
             raise(MushRException(
                 f"Spawn(uid={self.uid}) does not have a container"))
 
         is_contained_by_relationship = self.is_contained_by.relationship(
-            substrate_container)
+            spawn_container)
 
         with db.transaction:
             is_contained_by_relationship.end = currenttime()
@@ -919,7 +918,7 @@ class Substrate(DjangoNode):
         innoculated_substrate, meta = db.cypher_query(
             """MATCH ()<-[R2:IS_INNOCULATED_FROM]-(sp:Substrate)-[R:IS_CONTAINED_BY]->(spc)
             WHERE (R.start <= $timestamp
-            AND (NOT exists(R.end) OR R.end <= $timestamp))
+            AND (NOT exists(R.end) OR R.end >= $timestamp))
             AND R2.timestamp <= $timestamp
             return sp""",
             {"timestamp": timestamp.timestamp()},
@@ -946,6 +945,24 @@ currently occupied with Substrate(uid={current_substrate[0].uid})")
             substrate.save()
             substrate.is_contained_by.connect(substrate_container)
         return substrate
+
+    def discard(self):
+        """Sets the `end` property of the is_contained_by relationship
+        to currenttime
+
+        """
+        try:
+            substrate_container = self.container
+        except IndexError:
+            raise(MushRException(
+                f"Substrate(uid={self.uid}) does not have a container"))
+
+        is_contained_by_relationship = self.is_contained_by.relationship(
+            substrate_container)
+
+        with db.transaction:
+            is_contained_by_relationship.end = currenttime()
+            is_contained_by_relationship.save()
 
 
 class FruitingHole(DjangoNode):
