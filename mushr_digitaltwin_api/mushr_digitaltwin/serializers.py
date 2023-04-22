@@ -195,7 +195,7 @@ class SpawnSerializer(MyceliumSampleSerializer):
                                          Spawn has been discarded""")
     is_innoculated_from = MushRTraversalSerializer(
         read_only=True,
-        child=MushRIsDescendentOfRelationshipSerializer())
+        child=MushRIsInnoculatedFromRelationshipSerializer())
     is_contained_by = MushRTraversalSerializer(
         read_only=True,
         child=MushRIsLocatedAtRelationshipSerializer())
@@ -356,7 +356,7 @@ class SubstrateSerializer(MushRNodeSerializer):
                                          Substrate has been discarded""")
     is_innoculated_from = MushRTraversalSerializer(
         read_only=True,
-        child=MushRIsDescendentOfRelationshipSerializer())
+        child=MushRIsInnoculatedFromRelationshipSerializer())
 
     is_contained_by = MushRTraversalSerializer(
         read_only=True,

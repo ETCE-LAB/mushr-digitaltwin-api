@@ -837,7 +837,7 @@ class CreateSubstrate(MushRNodeBaseAPIView):
         SubstrateContainer.
 
         `substrate_container_uid`: UID of a free substrate
-        container. See TODO: Add avalialable container list view
+        container. See substrate_container/empty
 
         """
         serializer = SubstrateSerializer(data=request.data)
