@@ -85,4 +85,8 @@ urlpatterns = [
 
     path("is_descendent_of_relationship/<int:id>", views.MushRIsDescendentOfRelationshipInstance.as_view()),
     path("is_located_at_relationship/<int:id>", views.MushRIsLocatedAtRelationshipInstance.as_view()),
+
+
+    # Actions
+    path("innoculate/<innoculant_uid>/<recipient_container_uid>", views.Innoculate.as_view()),
 ]

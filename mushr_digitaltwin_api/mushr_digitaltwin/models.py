@@ -4,6 +4,7 @@
 
 import datetime
 from django_neomodel import DjangoNode
+from neomodel.exceptions import DoesNotExist
 from neomodel import (StructuredRel, RelationshipTo)
 from neomodel import (RelationshipManager, OUTGOING, INCOMING)
 from neomodel import (StringProperty, UniqueIdProperty,
@@ -45,9 +46,11 @@ def custom_rel_merge_helper(lhs, rhs,
     :type rhs: str
     :param ident: A specific identity to name the relationship, or None.
     :type ident: str
-    :param relation_type: None for all direct rels, * for all of any length, or a name of an explicit rel.
+    :param relation_type: None for all direct rels, * for all of any length, or
+    a name of an explicit rel.
     :type relation_type: str
-    :param direction: None or EITHER for all OUTGOING,INCOMING,EITHER. Otherwise OUTGOING or INCOMING.
+    :param direction: None or EITHER for all OUTGOING,INCOMING,EITHER.
+    Otherwise OUTGOING or INCOMING.
     :param relation_properties: dictionary of relationship properties to merge
     :returns: string
 
@@ -478,6 +481,17 @@ class Spawn(MyceliumSample):
                                      model=IsContainedBy)
 
     @property
+    def container(self):
+        """Returns the current container
+
+        """
+        spawn_containers = self.is_contained_by.match(
+            end__isnull=True).all()
+
+        return (spawn_containers[0]
+                if spawn_containers else None)
+
+    @property
     def discarded(self):
         """Returns `True` if the Spawn is not contained by a
         SpawnContainer
@@ -557,7 +571,8 @@ class Spawn(MyceliumSample):
         current_spawn = spawn_container.current_spawn
         if current_spawn:
             raise MushRException(
-                f"SpawnContainer(uid={spawn_container_uid}) is currently occupied with Spawn(uid={current_spawn[0].uid})")
+                f"SpawnContainer(uid={spawn_container_uid}) is currently\
+occupied with Spawn(uid={current_spawn[0].uid})")
 
         with db.transaction:
             spawn.save()
@@ -789,6 +804,17 @@ class Substrate(DjangoNode):
                                      model=IsContainedBy)
 
     @property
+    def container(self):
+        """Returns the current container
+
+        """
+        substrate_containers = self.is_contained_by.match(
+            end__isnull=True).all()
+
+        return (substrate_containers[0]
+                if substrate_containers else None)
+
+    @property
     def discarded(self):
         """Returns `True` if the Substrate is not contained by a
         SubstrateContainer
@@ -806,7 +832,7 @@ class Substrate(DjangoNode):
         """
         active_substrate, meta = db.cypher_query(
             """MATCH (sp:Substrate)-[R:IS_CONTAINED_BY]->(spc)
-            WHERE R.start <= $timestamp 
+            WHERE R.start <= $timestamp
             AND NOT exists(R.end) OR R.end >= $timestamp
             return sp""",
             {"timestamp": timestamp.timestamp()},
@@ -864,11 +890,13 @@ class Substrate(DjangoNode):
     @staticmethod
     def create_new(validated_data, substrate_container_uid):
         substrate = Substrate(**validated_data)
-        substrate_container = SubstrateContainer.nodes.get(uid=substrate_container_uid)
+        substrate_container = SubstrateContainer.nodes.get(
+            uid=substrate_container_uid)
         current_substrate = substrate_container.current_substrate
         if current_substrate:
             raise MushRException(
-                f"SubstrateContainer(uid={substrate_container_uid}) is currently occupied with Substrate(uid={current_substrate[0].uid})")
+                f"SubstrateContainer(uid={substrate_container_uid}) is\
+currently occupied with Substrate(uid={current_substrate[0].uid})")
         with db.transaction:
             substrate.save()
             substrate.is_contained_by.connect(substrate_container)
@@ -908,7 +936,11 @@ class Flush(DjangoNode):
                          timestamp=None):
         if timestamp is None:
             timestamp = currenttime()
-        flushes, meta = db.cypher_query(f"MATCH (fl:Flush)-[rel:FRUITS_THROUGH]->() WHERE rel.start <= {timestamp.timestamp()} return fl", {}, retry_on_session_expire=True)
+        flushes, meta = db.cypher_query(
+            "MATCH (fl:Flush)-[rel:FRUITS_THROUGH]->()\
+            WHERE rel.start <= $timestamp return fl",
+            {"timestamp": timestamp.timestamp()},
+            retry_on_session_expire=True)
         return [Flush.inflate(fl[0]) for fl in flushes]
 
 
@@ -954,3 +986,56 @@ class Sensor(DjangoNode):
         super().__init__(*args, **kwargs)
         self.is_sensing_in.connect_new = types.MethodType(
             CustomRelationshipManager.connect_new, self.is_sensing_in)
+
+
+def innoculate(innoculant_uid,
+               recipient_container_uid,
+               validated_data):
+
+    # innoculant_uid might be Strain.uid or SpawnContainer.uid
+
+    innoculant = Strain.nodes.get_or_none(uid=innoculant_uid)
+
+    if not innoculant:  # then it is not Strain
+        active_spawns = Spawn.get_active_spawn(timestamp=currenttime())
+
+        for active_spawn in active_spawns:
+            spawn_container = active_spawn.container
+            if innoculant_uid == spawn_container.uid:
+                innoculant = active_spawn
+                break
+
+    if not innoculant:  # If the innoculant is still not found
+        raise MushRException(
+            f"innoculant_uid={innoculant_uid} does not match \
+any active SpawnContainer uid or Strain uid")
+
+    innoculable_spawns = Spawn.get_innoculable_spawn(timestamp=currenttime())
+    innoculable_substrates = Substrate.get_innoculable_substrate(
+        timestamp=currenttime())
+
+    # recipient_container_uid might be SpawnContainer.uid or
+    # SubstrateContainer.uid
+
+    recipient = None
+    for innoculable_spawn in innoculable_spawns:
+        if recipient_container_uid == innoculable_spawn.container.uid:
+            recipient = innoculable_spawn
+            break
+
+    if not recipient:  # Then recipient is not Spawn
+        for innoculable_substrate in innoculable_substrates:
+            if recipient_container_uid == innoculable_substrate.container.uid:
+                recipient = innoculable_substrate
+                break
+
+    if not recipient:  # If the recipient is still not found
+        raise MushRException(
+            f"recipient_container_uid={recipient_container_uid} does not match \
+any innoculable Spawn or Substrate's container")
+
+    with db.transaction:
+        is_innoculated_from_relation = recipient.is_innoculated_from.connect(
+            innoculant, validated_data)
+
+    return is_innoculated_from_relation

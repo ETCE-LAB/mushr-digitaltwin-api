@@ -10,6 +10,8 @@ from mushr_digitaltwin.models import (Location, GrowChamber,
                                       FruitsFrom, IsHarvestedFrom,
                                       IsInnoculatedFrom)
 
+from mushr_digitaltwin.models import innoculate
+
 from mushr_digitaltwin.serializers import (
     LocationSerializer, GrowChamberSerializer, StorageLocationSerializer,
     MyceliumSampleSerializer, StrainSerializer, SpawnSerializer,
@@ -17,7 +19,9 @@ from mushr_digitaltwin.serializers import (
     SubstrateContainerSerializer, FruitingHoleSerializer, FlushSerializer,
     MushroomHarvestSerializer, SensorSerializer,
     MushRIsLocatedAtRelationshipSerializer,
-    MushRIsDescendentOfRelationshipSerializer)
+    MushRIsDescendentOfRelationshipSerializer,
+    MushRIsInnoculatedFromRelationshipSerializer)
+
 import drf_standardized_errors.openapi_serializers as drf_openapi_serializers
 import rest_framework.exceptions as drf_exceptions
 from neomodel import db
@@ -80,7 +84,7 @@ class MushRRelationshipInstance(APIView):
         IsDescendentOf: MushRIsDescendentOfRelationshipSerializer,
         FruitsFrom: MushRIsDescendentOfRelationshipSerializer,
         IsHarvestedFrom: MushRIsDescendentOfRelationshipSerializer,
-        IsInnoculatedFrom: MushRIsDescendentOfRelationshipSerializer,
+        IsInnoculatedFrom: MushRIsInnoculatedFromRelationshipSerializer,
     }
 
     def get_relationship(self, id):
@@ -185,6 +189,7 @@ class MushRInstance(MushRNodeBaseAPIView):
     """Retrieve/Update instance of a MushR Node
 
     """
+
     def get_node(self, uid):
         try:
             return self.mushr_model.nodes.get(uid=uid)
@@ -496,6 +501,7 @@ class FreeSpawnContainerUIDs(SpawnContainerUIDs):
     current system time is assumed.
 
     """
+
     def yield_uids(self, timestamp):
         if not timestamp:
             timestamp = datetime.datetime.now()
@@ -572,6 +578,7 @@ class FreeSubstrateContainerUIDs(SubstrateContainerUIDs):
     current system time is assumed.
 
     """
+
     def yield_uids(self, timestamp):
         if not timestamp:
             timestamp = datetime.datetime.now()
@@ -813,3 +820,37 @@ class SensorInstance(MushRInstance):
             404: drf_openapi_serializers.ErrorResponse404Serializer})
     def put(self, request, uid, **kwargs):
         return super().put(request, uid, **kwargs)
+
+
+class Innoculate(APIView):
+
+    @swagger_auto_schema(
+        request_body=MushRIsInnoculatedFromRelationshipSerializer,
+        responses={
+            200: MushRIsInnoculatedFromRelationshipSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer})
+    def post(self, request, innoculant_uid, recipient_container_uid):
+        """Innoculate a recipient (Spawn or Substrate) using (Spawn or
+        Strain)
+
+        `innoculant_uid` can be either Strain UID or SpawnContainer
+        UID (of a currently active Spawn)
+
+        `recipient_container_uid` can be either SpawnContainer UID or
+        SubstrateContainer UID (that currently contains an innoculable
+        Spawn or Substrate respectively)
+
+        Returns: Either Spawn or Substrate
+
+        """
+
+        serializer = MushRIsInnoculatedFromRelationshipSerializer(
+            data=request.data)
+
+        if serializer.is_valid(raise_exception=True):
+            is_innoculated_from_relation = innoculate(
+                innoculant_uid,
+                recipient_container_uid,
+                serializer.validated_data)
+            return Response(MushRIsInnoculatedFromRelationshipSerializer(
+                is_innoculated_from_relation).data)

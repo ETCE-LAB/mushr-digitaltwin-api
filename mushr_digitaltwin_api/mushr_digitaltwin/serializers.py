@@ -59,6 +59,20 @@ class MushRIsDescendentOfRelationshipSerializer(MushRRelationshipSerializer):
     pass
 
 
+class MushRIsInnoculatedFromRelationshipSerializer(
+        MushRIsDescendentOfRelationshipSerializer):
+    amount = serializers.FloatField(required=True,
+                                    help_text="""The amount of innoculant
+                                    innoculated (in grams)""")
+    timestamp = serializers.DateTimeField(required=False,
+                                          format="%Y-%m-%d %H:%M %Z",
+                                          help_text="""The time at which the
+                                          innoculation took place""")
+    innoculatedBy = serializers.CharField(
+        required=False,
+        help_text="""The user who innoculated this spawn""")
+
+
 class MushRIsLocatedAtRelationshipSerializer(MushRRelationshipSerializer):
     start = serializers.DateTimeField(
         help_text="""The start time of the time period during which
