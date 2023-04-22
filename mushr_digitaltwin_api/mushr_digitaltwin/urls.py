@@ -16,6 +16,8 @@ urlpatterns = [
     path("substrate/active/<ISO8601DateTime:timestamp>", views.ActiveSubstrateUIDs.as_view()),
     path("substrate/innoculable/", views.InnoculableSubstrateUIDs.as_view()),
     path("substrate/innoculable/<ISO8601DateTime:timestamp>", views.InnoculableSubstrateUIDs.as_view()),
+    path("substrate/innoculated/", views.InnoculatedSubstrateUIDs.as_view()),
+    path("substrate/innoculated/<ISO8601DateTime:timestamp>", views.InnoculatedSubstrateUIDs.as_view()),
     path("substrate/<uid>/", views.SubstrateInstance.as_view()),
 
     path("location/", views.LocationUIDs.as_view()),
@@ -48,6 +50,8 @@ urlpatterns = [
     path("spawn/active/<ISO8601DateTime:timestamp>", views.ActiveSpawnUIDs.as_view()),
     path("spawn/innoculable/", views.InnoculableSpawnUIDs.as_view()),
     path("spawn/innoculable/<ISO8601DateTime:timestamp>", views.InnoculableSpawnUIDs.as_view()),
+    path("spawn/innoculated/", views.InnoculatedSpawnUIDs.as_view()),
+    path("spawn/innoculated/<ISO8601DateTime:timestamp>", views.InnoculatedSpawnUIDs.as_view()),
     path("spawn/<uid>/", views.SpawnInstance.as_view()),
 
     path("spawn_container/", views.SpawnContainerUIDs.as_view()),

@@ -416,6 +416,26 @@ class InnoculableSpawnUIDs(SpawnUIDs):
         return (super().get(request, timestamp))
 
 
+class InnoculatedSpawnUIDs(SpawnUIDs):
+    def yield_uids(self, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+
+        for spawn in Spawn.get_innoculated_spawn(
+                timestamp):
+            yield spawn.uid
+
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs"})
+    def get(self, request, timestamp=None):
+        """Returns a list of Spawn UIDs which are not discarded and
+        have been innoculated at `timestamp`. If `timestamp` is not
+        specified, then current system time is assumed.
+
+        """
+        return (super().get(request, timestamp))
+
+
 class CreateSpawn(MushRNodeBaseAPIView):
     @property
     def mushr_model(self):
@@ -445,7 +465,8 @@ class CreateSpawn(MushRNodeBaseAPIView):
                 return Response(serializer.data)
             except SpawnContainer.DoesNotExist:
                 raise drf_exceptions.NotFound(
-                    f"SpawnContainer(uid={spawn_container_uid}) does not exist")
+                    f"SpawnContainer(uid={spawn_container_uid})\
+does not exist")
 
 
 class StrainUIDs(MushRNodeUIDs):
@@ -582,7 +603,8 @@ class FreeSubstrateContainerUIDs(SubstrateContainerUIDs):
     def yield_uids(self, timestamp):
         if not timestamp:
             timestamp = datetime.datetime.now()
-        for substrate_container in SubstrateContainer.get_empty_substrate_containers(
+        for substrate_container\
+            in SubstrateContainer.get_empty_substrate_containers(
                 timestamp):
             yield substrate_container.uid
 
@@ -683,6 +705,26 @@ class InnoculableSubstrateUIDs(SubstrateUIDs):
         return (super().get(request, timestamp))
 
 
+class InnoculatedSubstrateUIDs(SubstrateUIDs):
+    def yield_uids(self, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now()
+
+        for substrate in Substrate.get_innoculated_substrate(
+                timestamp):
+            yield substrate.uid
+
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs"})
+    def get(self, request, timestamp=None):
+        """Returns a list of Substrate UIDs which are not discarded
+        and have been innoculated at `timestamp`. If `timestamp` is
+        not specified, then current system time is assumed.
+
+        """
+        return (super().get(request, timestamp))
+
+
 class CreateSubstrate(MushRNodeBaseAPIView):
     @property
     def mushr_model(self):
@@ -711,7 +753,8 @@ class CreateSubstrate(MushRNodeBaseAPIView):
                 return Response(serializer.data)
             except SubstrateContainer.DoesNotExist:
                 raise drf_exceptions.NotFound(
-                    f"SubstrateContainer(uid={substrate_container_uid}) does not exist")
+                    f"SubstrateContainer(uid={substrate_container_uid})\
+does not exist")
 
 
 class FruitingHoleUIDs(MushRNodeUIDs):
@@ -834,13 +877,11 @@ class Innoculate(APIView):
         Strain)
 
         `innoculant_uid` can be either Strain UID or SpawnContainer
-        UID (of a currently active Spawn)
+        UID (of a currently innoculated Spawn)
 
         `recipient_container_uid` can be either SpawnContainer UID or
         SubstrateContainer UID (that currently contains an innoculable
         Spawn or Substrate respectively)
-
-        Returns: Either Spawn or Substrate
 
         """
 

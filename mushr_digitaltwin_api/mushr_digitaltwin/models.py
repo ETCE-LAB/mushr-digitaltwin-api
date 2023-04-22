@@ -4,7 +4,6 @@
 
 import datetime
 from django_neomodel import DjangoNode
-from neomodel.exceptions import DoesNotExist
 from neomodel import (StructuredRel, RelationshipTo)
 from neomodel import (RelationshipManager, OUTGOING, INCOMING)
 from neomodel import (StringProperty, UniqueIdProperty,
@@ -482,6 +481,7 @@ class Spawn(MyceliumSample):
 
     @property
     def container(self):
+
         """Returns the current container
 
         """
@@ -563,6 +563,28 @@ class Spawn(MyceliumSample):
                 spawn[0] for spawn in innoculated_later_spawn]
 
         return not_innoculated_spawn + innoculated_later_spawn
+
+    @staticmethod
+    def get_innoculated_spawn(timestamp):
+        """Returns a list of Spawn that has are not discarded and
+        has been innoculated at `timestamp`
+
+        """
+        innoculated_spawn, meta = db.cypher_query(
+            """MATCH ()<-[R2:IS_INNOCULATED_FROM]-(sp:Spawn)-[R:IS_CONTAINED_BY]->(spc)
+            WHERE (R.start <= $timestamp
+            AND (NOT exists(R.end) OR R.end <= $timestamp))
+            AND R2.timestamp <= $timestamp
+            return sp""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if innoculated_spawn:
+            # If any spawn was fetched, select the first column
+            innoculated_spawn = [spawn[0]
+                                 for spawn in innoculated_spawn]
+        return innoculated_spawn
 
     @staticmethod
     def create_new(validated_data, spawn_container_uid):
@@ -888,6 +910,28 @@ class Substrate(DjangoNode):
         return not_innoculated_substrate + innoculated_later_substrate
 
     @staticmethod
+    def get_innoculated_substrate(timestamp):
+        """Returns a list of Substrate that has are not discarded and
+        has been innoculated at `timestamp`
+
+        """
+        innoculated_substrate, meta = db.cypher_query(
+            """MATCH ()<-[R2:IS_INNOCULATED_FROM]-(sp:Substrate)-[R:IS_CONTAINED_BY]->(spc)
+            WHERE (R.start <= $timestamp
+            AND (NOT exists(R.end) OR R.end <= $timestamp))
+            AND R2.timestamp <= $timestamp
+            return sp""",
+            {"timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if innoculated_substrate:
+            # If any substrate was fetched, select the first column
+            innoculated_substrate = [substrate[0]
+                                     for substrate in innoculated_substrate]
+        return innoculated_substrate
+
+    @staticmethod
     def create_new(validated_data, substrate_container_uid):
         substrate = Substrate(**validated_data)
         substrate_container = SubstrateContainer.nodes.get(
@@ -997,12 +1041,13 @@ def innoculate(innoculant_uid,
     innoculant = Strain.nodes.get_or_none(uid=innoculant_uid)
 
     if not innoculant:  # then it is not Strain
-        active_spawns = Spawn.get_active_spawn(timestamp=currenttime())
+        innoculated_spawns = Spawn.get_innoculated_spawn(
+            timestamp=currenttime())
 
-        for active_spawn in active_spawns:
-            spawn_container = active_spawn.container
+        for innoculated_spawn in innoculated_spawns:
+            spawn_container = innoculated_spawn.container
             if innoculant_uid == spawn_container.uid:
-                innoculant = active_spawn
+                innoculant = innoculated_spawn
                 break
 
     if not innoculant:  # If the innoculant is still not found
