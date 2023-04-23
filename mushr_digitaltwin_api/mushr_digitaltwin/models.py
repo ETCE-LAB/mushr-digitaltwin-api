@@ -350,6 +350,35 @@ class SpawnContainer(DjangoNode):
 
         return [Spawn.inflate(row[0]) for row in results]
 
+    def spawn_at_timestamp(self, timestamp):
+        results, columns = self.cypher(
+            """MATCH
+            (:Spawn)-[R:IS_CONTAINED_BY]->(subc:SpawnContainer)
+            WHERE (id(subc) = $self)
+            AND (R.start <= $timestamp)
+            AND (NOT exists(R.end) or R.end > $timestamp)
+            WITH max(R.start) as maxstart, subc
+            MATCH (spawn:Spawn)-[r:IS_CONTAINED_BY]->(subc)
+            WHERE r.start = maxstart
+            RETURN spawn""",
+            {"timestamp": timestamp.timestamp()})
+
+        return [Spawn.inflate(row[0]) for row in results]
+
+    def location_at_timestamp(self, timestamp):
+        results, columns = self.cypher(
+            """MATCH (:Location)<-[R:IS_LOCATED_AT]-(subc:SpawnContainer)
+            WHERE (id(subc) = $self)
+            AND (R.start <= $timestamp)
+            AND (NOT exists(R.end) or R.end > $timestamp)
+            WITH max(R.start) as maxstart, subc
+            MATCH
+            (subc:SpawnContainer)-[r:IS_LOCATED_AT]->(location:Location)
+            WHERE r.start = maxstart
+            RETURN location""", {"timestamp": timestamp.timestamp()})
+
+        return [Location.inflate(row[0]) for row in results]
+
     @property
     def current_location(self):
         results, columns = self.cypher("""MATCH
@@ -685,6 +714,35 @@ class SubstrateContainer(DjangoNode):
 
         return [Substrate.inflate(row[0]) for row in results]
 
+    def substrate_at_timestamp(self, timestamp):
+        results, columns = self.cypher(
+            """MATCH
+            (:Substrate)-[R:IS_CONTAINED_BY]->(subc:SubstrateContainer)
+            WHERE (id(subc) = $self)
+            AND (R.start <= $timestamp)
+            AND (NOT exists(R.end) or R.end > $timestamp)
+            WITH max(R.start) as maxstart, subc
+            MATCH (substrate:Substrate)-[r:IS_CONTAINED_BY]->(subc)
+            WHERE r.start = maxstart
+            RETURN substrate""",
+            {"timestamp": timestamp.timestamp()})
+
+        return [Substrate.inflate(row[0]) for row in results]
+
+    def location_at_timestamp(self, timestamp):
+        results, columns = self.cypher(
+            """MATCH (:Location)<-[R:IS_LOCATED_AT]-(subc:SubstrateContainer)
+            WHERE (id(subc) = $self)
+            AND (R.start <= $timestamp)
+            AND (NOT exists(R.end) or R.end > $timestamp)
+            WITH max(R.start) as maxstart, subc
+            MATCH
+            (subc)-[r:IS_LOCATED_AT]->(location:Location)
+            WHERE r.start = maxstart
+            RETURN location""", {"timestamp": timestamp.timestamp()})
+
+        return [Location.inflate(row[0]) for row in results]
+
     @property
     def current_location(self):
         results, columns = self.cypher("""MATCH
@@ -1002,6 +1060,25 @@ class FruitingHole(DjangoNode):
 
         return active_flushes
 
+    @staticmethod
+    def available_for_fruiting():
+        """Get list of FruitingHoles currently available for fruiting.
+
+        List is compiled based on currently innoculated substrates
+        that have not been discarded, and their respective substrate
+        containers. FruitingHoles that have flushes fruiting from them
+        are excluded from this list.
+
+        """
+        timestamp = datetime.datetime.now().astimezone()
+
+        innoculated_substrates = Substrate.get_innoculated_substrate(timestamp)
+        for substrate in innoculated_substrates:
+            substrate_container = substrate.container
+            for fruiting_hole in substrate_container.fruiting_holes:
+                if not fruiting_hole.active_flushes(timestamp):
+                    yield fruiting_hole
+
 
 class Flush(DjangoNode):
     """
@@ -1126,3 +1203,26 @@ any innoculable Spawn or Substrate's container")
             innoculant, validated_data)
 
     return is_innoculated_from_relation
+
+
+def start_fruiting(fruiting_hole_uid, grow_chamber_uid):
+
+    fruiting_hole = FruitingHole.nodes.get(uid=fruiting_hole_uid)
+
+    if fruiting_hole not in FruitingHole.available_for_fruiting():
+        raise MushRException(f"FruitingHole(uid={fruiting_hole_uid}) is not \
+currently available for fruiting.")
+
+    substrate_container = fruiting_hole.is_part_of.all()[0]
+    substrate = substrate_container.current_substrate[0]
+
+    grow_chamber = GrowChamber.nodes.get(uid=grow_chamber_uid)
+
+    flush = Flush()
+    with db.transaction:
+        flush.save()
+        flush.fruits_from.connect(substrate)
+        flush.fruits_through.connect(fruiting_hole)
+        substrate_container.change_storage_location(grow_chamber.uid,
+                                                    transaction=False)
+    return flush

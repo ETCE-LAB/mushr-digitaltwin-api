@@ -109,6 +109,10 @@ class MushRIsLocatedAtRelationshipSerializer(MushRRelationshipSerializer):
 
 
 class MushRNodeSerializer(serializers.Serializer):
+    def to_representation(self, instance):
+        instance.labels = reversed(instance.inherited_labels())
+        return super(MushRNodeSerializer, self).to_representation(instance)
+
     id = serializers.IntegerField(
         read_only=True,
         help_text="""Neo4j Internal ID""")

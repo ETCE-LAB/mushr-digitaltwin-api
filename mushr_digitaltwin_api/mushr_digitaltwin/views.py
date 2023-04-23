@@ -10,7 +10,7 @@ from mushr_digitaltwin.models import (Location, GrowChamber,
                                       FruitsFrom, IsHarvestedFrom,
                                       IsInnoculatedFrom)
 
-from mushr_digitaltwin.models import innoculate
+from mushr_digitaltwin.models import innoculate, start_fruiting
 from mushr_digitaltwin.models import MushRException
 
 from mushr_digitaltwin.serializers import (
@@ -632,6 +632,53 @@ does not exist")
         return Response(SpawnContainerSerializer(spawn_container).data)
 
 
+class SpawnContainerLocationAtTimestamp(APIView):
+
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs",
+        404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, timestamp, **kwargs):
+        """Get the location of the SpawnContainer at `timestamp`
+
+        """
+
+        if not timestamp:
+            timestamp = datetime.datetime.now().astimezone()
+
+        spawn_container = SpawnContainer.nodes.get_or_none(uid=uid)
+        if not spawn_container:
+            raise drf_exceptions.NotFound(f"SpawnContainer(uid={uid} \
+does not exist)")
+
+        locations = spawn_container.location_at_timestamp(timestamp)
+
+        return Response([location.uid for location in locations])
+
+
+class SpawnContainerSpawnAtTimestamp(APIView):
+
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs",
+        404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, timestamp, **kwargs):
+        """Get the spawn contained in the SpawnContainer at
+        `timestamp`
+
+        """
+
+        if not timestamp:
+            timestamp = datetime.datetime.now().astimezone()
+
+        spawn_container = SpawnContainer.nodes.get_or_none(uid=uid)
+        if not spawn_container:
+            raise drf_exceptions.NotFound(f"SpawnContainer(uid={uid} \
+does not exist)")
+
+        spawns = spawn_container.spawn_at_timestamp(timestamp)
+
+        return Response([spawn.uid for spawn in spawns])
+
+
 class SubstrateContainerUIDs(MushRNodeUIDs):
     @property
     def mushr_model(self):
@@ -732,6 +779,53 @@ does not exist")
             location_uid,
             transaction=True)
         return Response(SubstrateContainerSerializer(substrate_container).data)
+
+
+class SubstrateContainerLocationAtTimestamp(APIView):
+
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs",
+        404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, timestamp, **kwargs):
+        """Get the location of the SubstrateContainer at `timestamp`
+
+        """
+
+        if not timestamp:
+            timestamp = datetime.datetime.now().astimezone()
+
+        substrate_container = SubstrateContainer.nodes.get_or_none(uid=uid)
+        if not substrate_container:
+            raise drf_exceptions.NotFound(f"SubstrateContainer(uid={uid} \
+does not exist)")
+
+        locations = substrate_container.location_at_timestamp(timestamp)
+
+        return Response([location.uid for location in locations])
+
+
+class SubstrateContainerSubstrateAtTimestamp(APIView):
+
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs",
+        404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, timestamp, **kwargs):
+        """Get the substrate contained in the SubstrateContainer at
+        `timestamp`
+
+        """
+
+        if not timestamp:
+            timestamp = datetime.datetime.now().astimezone()
+
+        substrate_container = SubstrateContainer.nodes.get_or_none(uid=uid)
+        if not substrate_container:
+            raise drf_exceptions.NotFound(f"SubstrateContainer(uid={uid} \
+does not exist)")
+
+        substrates = substrate_container.substrate_at_timestamp(timestamp)
+
+        return Response([substrate.uid for substrate in substrates])
 
 
 class SubstrateUIDs(MushRNodeUIDs):
@@ -916,12 +1010,59 @@ class FruitingHoleInstance(MushRInstance):
         return super().put(request, uid, **kwargs)
 
 
-class AvailableFruitingHoles(MushRNodeUIDs):
-    def yield_uids(self, timestamp):
-        if not timestamp:
-            timestamp = datetime.datetime.now().astimezone()
+class AvailableFruitingHoles(APIView):
+    def yield_uids(self):
+        for fruiting_hole in FruitingHole.available_for_fruiting():
+            yield fruiting_hole.uid
 
-        innoculated_substrates = Substrate.get_innoculated_substrate()
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs"})
+    def get(self, request):
+        """Get list of FruitingHole UIDs currently available for
+        fruiting.
+
+        List is compiled based on currently innoculated substrates
+        that have not been discarded, and their respective substrate
+        containers. FruitingHoles that have flushes fruiting from them
+        are excluded from this list.
+
+        """
+        return Response(self.yield_uids())
+
+
+class StartFruiting(APIView):
+    @swagger_auto_schema(
+        request_body=None,
+        responses={
+            200: FlushSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def post(self,
+             request,
+             fruiting_hole_uid,
+             grow_chamber_uid,
+             **kwargs):
+        """Start fruiting.
+
+        `fruiting_hole_uid`: UID of FruitingHole that is currently
+        available for fruiting (See fruiting_hole/available_for_fruiting).
+
+        `grow_chamber_uid`: UID of a GrowChamber where the
+        SubstrateContainer is being placed to fascilitate fruiting
+        from the contained substrate (This will implicitly change the
+        storage location of the SubstrateContainer).
+
+        """
+        try:
+            flush = start_fruiting(fruiting_hole_uid, grow_chamber_uid)
+        except FruitingHole.DoesNotExist:
+            raise drf_exceptions.NotFound(
+                f"FruitingHole(uid={fruiting_hole_uid} does not exist)")
+        except GrowChamber.DoesNotExist:
+            raise drf_exceptions.NotFound(
+                f"GrowChamber(uid={grow_chamber_uid} does not exist)")
+
+        return Response(FlushSerializer(flush).data)
 
 
 class FruitingHoleActiveFlushes(APIView):

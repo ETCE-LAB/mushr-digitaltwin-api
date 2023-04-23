@@ -61,6 +61,8 @@ urlpatterns = [
     path("spawn_container/<ISO8601DateTime:timestamp>", views.SpawnContainerUIDs.as_view()),
     path("spawn_container/<uid>/", views.SpawnContainerInstance.as_view()),
     path("spawn_container/<uid>/change_storage_location/<location_uid>", views.ChangeSpawnContainerStorageLocation.as_view()),
+    path("spawn_container/<uid>/location_at_timestamp/<ISO8601DateTime:timestamp>", views.SpawnContainerLocationAtTimestamp.as_view()),
+    path("spawn_container/<uid>/spawn_at_timestamp/<ISO8601DateTime:timestamp>", views.SpawnContainerSpawnAtTimestamp.as_view()),
 
     path("substrate_container/", views.SubstrateContainerUIDs.as_view()),
     path("substrate_container/create/<int:num_fruiting_holes>", views.CreateSubstrateContainerInstance.as_view()),
@@ -69,9 +71,12 @@ urlpatterns = [
     path("substrate_container/<ISO8601DateTime:timestamp>", views.SubstrateContainerUIDs.as_view()),
     path("substrate_container/<uid>/", views.SubstrateContainerInstance.as_view()),
     path("substrate_container/<uid>/change_storage_location/<location_uid>", views.ChangeSubstrateContainerStorageLocation.as_view()),
+    path("substrate_container/<uid>/location_at_timestamp/<ISO8601DateTime:timestamp>", views.SubstrateContainerLocationAtTimestamp.as_view()),
+    path("substrate_container/<uid>/substrate_at_timestamp/<ISO8601DateTime:timestamp>", views.SubstrateContainerSubstrateAtTimestamp.as_view()),
 
     path("fruiting_hole/", views.FruitingHoleUIDs.as_view()),
     path("fruiting_hole/<ISO8601DateTime:timestamp>", views.FruitingHoleUIDs.as_view()),
+    path("fruiting_hole/available_for_fruiting", views.AvailableFruitingHoles.as_view()),
     path("fruiting_hole/<uid>/", views.FruitingHoleInstance.as_view()),
     path("fruiting_hole/<uid>/active_flushes/<ISO8601DateTime:timestamp>", views.FruitingHoleActiveFlushes.as_view()),
 
@@ -95,7 +100,8 @@ urlpatterns = [
 
 
     # Actions
-    path("innoculate/<innoculant_uid>/<recipient_container_uid>", views.Innoculate.as_view()),
     path("discard_spawn/<spawn_container_uid>", views.DiscardSpawn.as_view()),
     path("discard_substrate/<substrate_container_uid>", views.DiscardSubstrate.as_view()),
+    path("innoculate/<innoculant_uid>/<recipient_container_uid>", views.Innoculate.as_view()),
+    path("start_fruiting/<fruiting_hole_uid>/<grow_chamber_uid>", views.StartFruiting.as_view()),
 ]
