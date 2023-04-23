@@ -509,7 +509,7 @@ class Spawn(MyceliumSample):
         active_spawn, meta = db.cypher_query(
             """MATCH (sp:Spawn)-[R:IS_CONTAINED_BY]->(spc)
             WHERE R.start <= $timestamp
-            AND NOT exists(R.end) OR R.end >= $timestamp
+            AND (NOT exists(R.end) OR R.end >= $timestamp)
             return sp""",
             {"timestamp": timestamp.timestamp()},
             resolve_objects=True,
@@ -855,7 +855,7 @@ class Substrate(DjangoNode):
         active_substrate, meta = db.cypher_query(
             """MATCH (sp:Substrate)-[R:IS_CONTAINED_BY]->(spc)
             WHERE R.start <= $timestamp
-            AND NOT exists(R.end) OR R.end >= $timestamp
+            AND (NOT exists(R.end) OR R.end >= $timestamp)
             return sp""",
             {"timestamp": timestamp.timestamp()},
             resolve_objects=True,
@@ -977,6 +977,30 @@ class FruitingHole(DjangoNode):
                                    format="%Y-%m-%d %H:%M %Z",
                                    help_text="""The timestamp at which
                                          it was created""")
+
+    def active_flushes(self, timestamp):
+        """Get a list of Flushes that are fruiting through this
+        FruitingHole at `timestamp`
+
+        """
+
+        active_flushes, meta = db.cypher_query(
+            """MATCH
+            (flush:Flush)-[R:FRUITS_THROUGH]->(fh:FruitingHole)
+            WHERE id(fh)=$id
+            AND (NOT exists(R.end) OR R.end > $timestamp)
+            RETURN flush""",
+            {"id": self.id,
+             "timestamp": timestamp.timestamp()},
+            resolve_objects=True,
+            retry_on_session_expire=True)
+
+        if active_flushes:
+            # If some flushes were returned, select the first column
+            active_flushes = [active_flush[0]
+                              for active_flush in active_flushes]
+
+        return active_flushes
 
 
 class Flush(DjangoNode):

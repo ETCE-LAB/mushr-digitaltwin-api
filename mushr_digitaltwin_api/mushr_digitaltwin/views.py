@@ -44,7 +44,7 @@ class MushRNodeUIDs(APIView):
     def yield_uids(self, timestamp):
 
         if not timestamp:
-            timestamp = datetime.datetime.now()
+            timestamp = datetime.datetime.now().astimezone()
         try:
 
             if self.mushr_model == Flush:
@@ -380,7 +380,7 @@ class SpawnInstance(MushRInstance):
 class ActiveSpawnUIDs(SpawnUIDs):
     def yield_uids(self, timestamp):
         if not timestamp:
-            timestamp = datetime.datetime.now()
+            timestamp = datetime.datetime.now().astimezone()
 
         for spawn in Spawn.get_active_spawn(
                 timestamp):
@@ -400,7 +400,7 @@ class ActiveSpawnUIDs(SpawnUIDs):
 class InnoculableSpawnUIDs(SpawnUIDs):
     def yield_uids(self, timestamp):
         if not timestamp:
-            timestamp = datetime.datetime.now()
+            timestamp = datetime.datetime.now().astimezone()
 
         for spawn in Spawn.get_innoculable_spawn(
                 timestamp):
@@ -420,7 +420,7 @@ class InnoculableSpawnUIDs(SpawnUIDs):
 class InnoculatedSpawnUIDs(SpawnUIDs):
     def yield_uids(self, timestamp):
         if not timestamp:
-            timestamp = datetime.datetime.now()
+            timestamp = datetime.datetime.now().astimezone()
 
         for spawn in Spawn.get_innoculated_spawn(
                 timestamp):
@@ -561,7 +561,7 @@ class FreeSpawnContainerUIDs(SpawnContainerUIDs):
 
     def yield_uids(self, timestamp):
         if not timestamp:
-            timestamp = datetime.datetime.now()
+            timestamp = datetime.datetime.now().astimezone()
         for spawn_container in SpawnContainer.get_empty_spawn_containers(
                 timestamp):
             yield spawn_container.uid
@@ -668,7 +668,7 @@ class FreeSubstrateContainerUIDs(SubstrateContainerUIDs):
 
     def yield_uids(self, timestamp):
         if not timestamp:
-            timestamp = datetime.datetime.now()
+            timestamp = datetime.datetime.now().astimezone()
         for substrate_container\
             in SubstrateContainer.get_empty_substrate_containers(
                 timestamp):
@@ -764,7 +764,7 @@ class SubstrateInstance(MushRInstance):
 class ActiveSubstrateUIDs(SubstrateUIDs):
     def yield_uids(self, timestamp):
         if not timestamp:
-            timestamp = datetime.datetime.now()
+            timestamp = datetime.datetime.now().astimezone()
 
         for substrate in Substrate.get_active_substrate(
                 timestamp):
@@ -784,7 +784,7 @@ class ActiveSubstrateUIDs(SubstrateUIDs):
 class InnoculableSubstrateUIDs(SubstrateUIDs):
     def yield_uids(self, timestamp):
         if not timestamp:
-            timestamp = datetime.datetime.now()
+            timestamp = datetime.datetime.now().astimezone()
 
         for substrate in Substrate.get_innoculable_substrate(
                 timestamp):
@@ -804,7 +804,7 @@ class InnoculableSubstrateUIDs(SubstrateUIDs):
 class InnoculatedSubstrateUIDs(SubstrateUIDs):
     def yield_uids(self, timestamp):
         if not timestamp:
-            timestamp = datetime.datetime.now()
+            timestamp = datetime.datetime.now().astimezone()
 
         for substrate in Substrate.get_innoculated_substrate(
                 timestamp):
@@ -914,6 +914,41 @@ class FruitingHoleInstance(MushRInstance):
             404: drf_openapi_serializers.ErrorResponse404Serializer})
     def put(self, request, uid, **kwargs):
         return super().put(request, uid, **kwargs)
+
+
+class AvailableFruitingHoles(MushRNodeUIDs):
+    def yield_uids(self, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now().astimezone()
+
+        innoculated_substrates = Substrate.get_innoculated_substrate()
+
+
+class FruitingHoleActiveFlushes(APIView):
+    def yield_uids(self, fruiting_hole, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now().astimezone()
+
+        active_flushes = fruiting_hole.active_flushes(timestamp)
+        for active_flush in active_flushes:
+            yield active_flush.uid
+
+    @swagger_auto_schema(
+        request_body=None,
+        responses={404: drf_openapi_serializers.ErrorResponse404Serializer,
+                   200: "List[<uid:string>] representing MushR Node UIDs"})
+    def get(self, request, uid, timestamp):
+        """Get a list of Flushes that are fruiting through a
+        FruitingHole at `timestamp`
+
+        """
+        try:
+            fruiting_hole = FruitingHole.nodes.get(uid=uid)
+        except FruitingHole.DoesNotExist:
+            raise drf_exceptions.NotFound(f"FruitingHole(uid={uid} \
+does not exist)")
+
+        return Response(self.yield_uids(fruiting_hole, timestamp))
 
 
 class FlushUIDs(MushRNodeUIDs):

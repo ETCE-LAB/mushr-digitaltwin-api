@@ -73,6 +73,7 @@ urlpatterns = [
     path("fruiting_hole/", views.FruitingHoleUIDs.as_view()),
     path("fruiting_hole/<ISO8601DateTime:timestamp>", views.FruitingHoleUIDs.as_view()),
     path("fruiting_hole/<uid>/", views.FruitingHoleInstance.as_view()),
+    path("fruiting_hole/<uid>/active_flushes/<ISO8601DateTime:timestamp>", views.FruitingHoleActiveFlushes.as_view()),
 
     path("flush/", views.FlushUIDs.as_view()),
     path("flush/<ISO8601DateTime:timestamp>", views.FlushUIDs.as_view()),
