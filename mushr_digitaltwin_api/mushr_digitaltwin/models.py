@@ -1079,6 +1079,31 @@ class FruitingHole(DjangoNode):
                 if not fruiting_hole.active_flushes(timestamp):
                     yield fruiting_hole
 
+    @staticmethod
+    def available_for_harvesting(timestamp=currenttime()):
+        """Get list of FruitingHoles with flushes fruiting through
+        currently available for fruiting.
+
+        List is compiled based on currently fruiting flushes
+        that have not been harvested.
+
+        """
+        innoculated_substrates = Substrate.get_innoculated_substrate(timestamp)
+        for substrate in innoculated_substrates:
+            fruiting_holes, meta = db.cypher_query(
+                """MATCH (fh:FruitingHole)<-[R:FRUITS_THROUGH]-(:Flush)-[R2:FRUITS_FROM]->(substrate:Substrate)
+                WHERE (R.start <= $timestamp)
+                AND (NOT exists(R.end) or R.end <= $timestamp)
+                AND (substrate.uid = $substrate_uid)
+                RETURN fh""",
+                {"timestamp": timestamp.timestamp(),
+                 "substrate_uid": substrate.uid},
+                resolve_objects=True,
+                retry_on_session_expire=True)
+
+            for fruiting_hole in fruiting_holes:
+                yield fruiting_hole[0]
+
 
 class Flush(DjangoNode):
     """
@@ -1226,3 +1251,42 @@ currently available for fruiting.")
         substrate_container.change_storage_location(grow_chamber.uid,
                                                     transaction=False)
     return flush
+
+
+def harvest(fruiting_hole_uid, validated_data):
+
+    fruiting_hole = FruitingHole.nodes.get(uid=fruiting_hole_uid)
+
+    active_flushes = fruiting_hole.active_flushes(
+        timestamp=currenttime())
+
+    if not active_flushes:
+        raise MushRException(f"FruitingHole(uid={fruiting_hole_uid}) \
+does not have any active flushes fruiting through")
+
+    if len(active_flushes) > 1:
+        raise MushRException(f"FruitingHole(uid={fruiting_hole_uid}) \
+erroneously has multiple flushes fruiting through")
+
+    flush = active_flushes[0]
+
+    substrate = flush.fruits_from.all()
+
+    if not substrate:
+        raise MushRException(f"Flush(uid={flush.uid}) \
+is erroneously not fruiting from any Substrates")
+
+    if len(substrate) > 1:
+        raise MushRException(f"Flush(uid={flush.uid}) \
+is erroneously fruiting from multiple Substrates")
+
+    mushroom_harvest = MushroomHarvest(**validated_data)
+
+    with db.transaction:
+        rel = flush.fruits_through.relationship(fruiting_hole)
+        rel.end = currenttime()
+        rel.save()
+        mushroom_harvest.save()
+        mushroom_harvest.is_harvested_from.connect(flush)
+
+    return mushroom_harvest

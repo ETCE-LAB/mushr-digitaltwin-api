@@ -77,6 +77,7 @@ urlpatterns = [
     path("fruiting_hole/", views.FruitingHoleUIDs.as_view()),
     path("fruiting_hole/<ISO8601DateTime:timestamp>", views.FruitingHoleUIDs.as_view()),
     path("fruiting_hole/available_for_fruiting", views.AvailableFruitingHoles.as_view()),
+    path("fruiting_hole/available_for_harvesting", views.HarvestableFruitingHoles.as_view()),
     path("fruiting_hole/<uid>/", views.FruitingHoleInstance.as_view()),
     path("fruiting_hole/<uid>/active_flushes/<ISO8601DateTime:timestamp>", views.FruitingHoleActiveFlushes.as_view()),
 
@@ -104,4 +105,5 @@ urlpatterns = [
     path("discard_substrate/<substrate_container_uid>", views.DiscardSubstrate.as_view()),
     path("innoculate/<innoculant_uid>/<recipient_container_uid>", views.Innoculate.as_view()),
     path("start_fruiting/<fruiting_hole_uid>/<grow_chamber_uid>", views.StartFruiting.as_view()),
+    path("harvest/<fruiting_hole_uid>", views.Harvest.as_view()),
 ]

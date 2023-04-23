@@ -10,7 +10,7 @@ from mushr_digitaltwin.models import (Location, GrowChamber,
                                       FruitsFrom, IsHarvestedFrom,
                                       IsInnoculatedFrom)
 
-from mushr_digitaltwin.models import innoculate, start_fruiting
+from mushr_digitaltwin.models import innoculate, start_fruiting, harvest
 from mushr_digitaltwin.models import MushRException
 
 from mushr_digitaltwin.serializers import (
@@ -1030,39 +1030,22 @@ class AvailableFruitingHoles(APIView):
         return Response(self.yield_uids())
 
 
-class StartFruiting(APIView):
-    @swagger_auto_schema(
-        request_body=None,
-        responses={
-            200: FlushSerializer,
-            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
-            404: drf_openapi_serializers.ErrorResponse404Serializer})
-    def post(self,
-             request,
-             fruiting_hole_uid,
-             grow_chamber_uid,
-             **kwargs):
-        """Start fruiting.
+class HarvestableFruitingHoles(APIView):
+    def yield_uids(self):
+        for fruiting_hole in FruitingHole.available_for_harvesting():
+            yield fruiting_hole.uid
 
-        `fruiting_hole_uid`: UID of FruitingHole that is currently
-        available for fruiting (See fruiting_hole/available_for_fruiting).
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Node UIDs"})
+    def get(self, request):
+        """Get list of FruitingHole UIDs with flushes fruiting through
+        currently available for fruiting.
 
-        `grow_chamber_uid`: UID of a GrowChamber where the
-        SubstrateContainer is being placed to fascilitate fruiting
-        from the contained substrate (This will implicitly change the
-        storage location of the SubstrateContainer).
+        List is compiled based on currently fruiting flushes that have
+        not been harvested.
 
         """
-        try:
-            flush = start_fruiting(fruiting_hole_uid, grow_chamber_uid)
-        except FruitingHole.DoesNotExist:
-            raise drf_exceptions.NotFound(
-                f"FruitingHole(uid={fruiting_hole_uid} does not exist)")
-        except GrowChamber.DoesNotExist:
-            raise drf_exceptions.NotFound(
-                f"GrowChamber(uid={grow_chamber_uid} does not exist)")
-
-        return Response(FlushSerializer(flush).data)
+        return Response(self.yield_uids())
 
 
 class FruitingHoleActiveFlushes(APIView):
@@ -1203,3 +1186,66 @@ class Innoculate(APIView):
                 serializer.validated_data)
             return Response(MushRIsInnoculatedFromRelationshipSerializer(
                 is_innoculated_from_relation).data)
+
+
+class Harvest(APIView):
+    @swagger_auto_schema(
+        request_body=MushroomHarvestSerializer,
+        responses={
+            200: MushroomHarvestSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def post(self,
+             request,
+             fruiting_hole_uid):
+        """Harvest Mushrooms.
+
+        `fruiting_hole_uid`: UID of FruitingHole that has an active
+        flush fruiting through
+
+        """
+        serializer = MushroomHarvestSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            try:
+                mushroom_harvest = harvest(fruiting_hole_uid,
+                                           serializer.validated_data)
+                return Response(
+                    MushroomHarvestSerializer(mushroom_harvest).data)
+            except FruitingHole.DoesNotExist:
+                raise(drf_exceptions.NotFound(
+                    f"FruitingHole(uid={fruiting_hole_uid}) does not exist"))
+
+
+class StartFruiting(APIView):
+    @swagger_auto_schema(
+        request_body=None,
+        responses={
+            200: FlushSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def post(self,
+             request,
+             fruiting_hole_uid,
+             grow_chamber_uid,
+             **kwargs):
+        """Start fruiting.
+
+        `fruiting_hole_uid`: UID of FruitingHole that is currently
+        available for fruiting (See fruiting_hole/available_for_fruiting).
+
+        `grow_chamber_uid`: UID of a GrowChamber where the
+        SubstrateContainer is being placed to fascilitate fruiting
+        from the contained substrate (This will implicitly change the
+        storage location of the SubstrateContainer).
+
+        """
+        try:
+            flush = start_fruiting(fruiting_hole_uid, grow_chamber_uid)
+        except FruitingHole.DoesNotExist:
+            raise drf_exceptions.NotFound(
+                f"FruitingHole(uid={fruiting_hole_uid} does not exist)")
+        except GrowChamber.DoesNotExist:
+            raise drf_exceptions.NotFound(
+                f"GrowChamber(uid={grow_chamber_uid} does not exist)")
+
+        return Response(FlushSerializer(flush).data)
