@@ -1156,6 +1156,62 @@ class SensorInstance(MushRInstance):
         return super().put(request, uid, **kwargs)
 
 
+class CreateSensor(MushRNodeBaseAPIView):
+    @property
+    def mushr_model(self):
+        return Sensor
+
+    @swagger_auto_schema(
+        request_body=SensorSerializer,
+        responses={
+            200: SensorSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def post(self, request, grow_chamber_uid, **kwargs):
+        """Create Sensor and automatically put it in a
+        GrowChamber.
+
+        `grow_chamber_uid`: UID of a GrowChamber
+
+        """
+        serializer = SensorSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            try:
+                sensor = Sensor.create_new(serializer.validated_data,
+                                           grow_chamber_uid)
+                serializer = SensorSerializer(sensor)
+                return Response(serializer.data)
+            except GrowChamber.DoesNotExist:
+                raise drf_exceptions.NotFound(
+                    f"GrowChamber(uid={grow_chamber_uid})\
+does not exist")
+
+
+class StopSensing(APIView):
+
+    @swagger_auto_schema(
+        request_body=None,
+        responses={
+            200: SensorSerializer,
+            400: drf_openapi_serializers.ValidationErrorResponseSerializer,
+            404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def delete(self, request, uid, **kwargs):
+        """Stop Sensing
+
+        `uid`: UID of Sensor
+
+        """
+        try:
+            sensor = Sensor.nodes.get(
+                uid=uid)
+            sensor.stop_sensing()
+        except Sensor.DoesNotExist:
+            raise drf_exceptions.NotFound(
+                f"Sensor(uid={uid}) does not exist")
+
+        return Response(SensorSerializer(sensor).data)
+
+
 class Innoculate(APIView):
 
     @swagger_auto_schema(

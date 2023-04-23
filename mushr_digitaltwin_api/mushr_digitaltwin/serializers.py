@@ -148,12 +148,17 @@ class LocationSerializer(MushRNodeSerializer):
 
 
 class GrowChamberSerializer(LocationSerializer):
-
     @db.transaction
     def create(self, validated_data):
         grow_chamber = GrowChamber(**validated_data)
         grow_chamber.save()
         return grow_chamber
+
+    current_sensors = serializers.ListField(
+        help_text="""Sensors currently sensing in GrowChamber""",
+        read_only=True,
+        child=MushRUIDSerializer(
+            help_text="""MushR UID of Sensor"""))
 
 
 class StorageLocationSerializer(LocationSerializer):

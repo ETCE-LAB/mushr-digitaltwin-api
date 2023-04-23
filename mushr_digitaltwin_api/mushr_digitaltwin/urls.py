@@ -91,8 +91,10 @@ urlpatterns = [
     path("mushroom_harvest/<uid>/", views.MushroomHarvestInstance.as_view()),
 
     path("sensor/", views.SensorUIDs.as_view()),
+    path("sensor/create/<grow_chamber_uid>", views.CreateSensor.as_view()),
     path("sensor/<ISO8601DateTime:timestamp>", views.SensorUIDs.as_view()),
     path("sensor/<uid>/", views.SensorInstance.as_view()),
+    path("sensor/<uid>/stop_sensing", views.StopSensing.as_view()),
 
     # Paths for specific relationships
 

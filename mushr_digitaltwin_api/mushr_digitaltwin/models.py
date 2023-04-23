@@ -261,7 +261,24 @@ class GrowChamber(Location):
     MushR asset
 
     """
-    pass
+
+    def sensors_at_timestamp(self, timestamp):
+        sensors, meta = db.cypher_query(
+            """MATCH (s:Sensor)-[R:IS_SENSING_IN]->(gc:GrowChamber)
+            WHERE (gc.uid = $uid)
+            AND (R.start <= $timestamp)
+            AND (NOT exists(R.end) or R.end > $timestamp)
+            RETURN s""",
+            {"uid": self.uid,
+             "timestamp": timestamp.timestamp()},
+            retry_on_session_expire=True,
+            resolve_objects=True)
+
+        return [sensor[0] for sensor in sensors]
+
+    @property
+    def current_sensors(self):
+        return self.sensors_at_timestamp(timestamp=currenttime())
 
 
 class StorageLocation(Location):
@@ -1174,6 +1191,39 @@ class Sensor(DjangoNode):
         super().__init__(*args, **kwargs)
         self.is_sensing_in.connect_new = types.MethodType(
             CustomRelationshipManager.connect_new, self.is_sensing_in)
+
+    @staticmethod
+    def create_new(validated_data, grow_chamber_uid):
+        sensor = Sensor(**validated_data)
+        grow_chamber = GrowChamber.nodes.get(
+            uid=grow_chamber_uid)
+        with db.transaction:
+            sensor.save()
+            sensor.is_sensing_in.connect(grow_chamber)
+        return sensor
+
+    @property
+    def grow_chamber(self):
+        """Returns the current grow_chamber
+        """
+        grow_chamber = self.is_sensing_in.match(
+            end__isnull=True).all()
+        return (grow_chamber[0] if grow_chamber else None)
+
+    def stop_sensing(self):
+        """Sets the `end` property of the is_sensing_in relationship
+        to currenttime
+
+        """
+        grow_chamber = self.grow_chamber
+        if not grow_chamber:
+            raise(MushRException(f"Sensor(uid={self.uid}) \
+is not sensing in any GrowChamber"))
+        is_sensing_in_relationship = self.is_sensing_in.relationship(
+            grow_chamber)
+        with db.transaction:
+            is_sensing_in_relationship.end = currenttime()
+            is_sensing_in_relationship.save()
 
 
 def innoculate(innoculant_uid,
