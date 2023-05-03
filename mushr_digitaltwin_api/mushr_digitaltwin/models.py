@@ -901,6 +901,24 @@ class Substrate(DjangoNode):
                                      model=IsContainedBy)
 
     @property
+    def strain_of_origin(self):
+        """Returns the strain from which this Substrate originates
+
+        """
+        strains, meta = db.cypher_query(
+            """MATCH (n:Substrate)-[R:IS_INNOCULATED_FROM*]->(s:Strain)
+            WHERE (n.uid = $uid)
+            RETURN s""",
+            {"uid": self.uid},
+            retry_on_session_expire=True,
+            resolve_objects=True)
+
+        if strains:
+            strains = [strain[0] for strain in strains]
+
+        return strains[0]
+
+    @property
     def container(self):
         """Returns the current container
 

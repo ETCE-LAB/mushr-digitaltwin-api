@@ -336,6 +336,7 @@ class SubstrateContainerSerializer(MushRNodeSerializer):
 
 
 class SubstrateSerializer(MushRNodeSerializer):
+
     weight = serializers.FloatField(
         required=True,
         min_value=0,
@@ -366,7 +367,10 @@ class SubstrateSerializer(MushRNodeSerializer):
     is_innoculated_from = MushRTraversalSerializer(
         read_only=True,
         child=MushRIsInnoculatedFromRelationshipSerializer())
-
+    strain_of_origin = MushRUIDSerializer(
+        read_only=True,
+        help_text="""The original strain,
+who's species the Substrate belongs to""")
     is_contained_by = MushRTraversalSerializer(
         read_only=True,
         child=MushRIsLocatedAtRelationshipSerializer())
