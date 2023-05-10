@@ -28,6 +28,8 @@ urlpatterns = [
     path("grow_chamber/create", views.CreateGrowChamberInstance.as_view()),
     path("grow_chamber/<ISO8601DateTime:timestamp>", views.GrowChamberUIDs.as_view()),
     path("grow_chamber/<uid>/", views.GrowChamberInstance.as_view()),
+    path("grow_chamber/<uid>/active_substrate_containers/", views.GrowChamberActiveSubstrateContainers.as_view()),
+    path("grow_chamber/<uid>/active_substrate_containers/<ISO8601DateTime:timestamp>", views.GrowChamberActiveSubstrateContainers.as_view()),
 
     path("storage_location/", views.StorageLocationUIDs.as_view()),
     path("storage_location/create", views.CreateStorageLocationInstance.as_view()),
@@ -42,7 +44,9 @@ urlpatterns = [
     path("strain/create", views.CreateStrainInstance.as_view()),
     path("strain/<ISO8601DateTime:timestamp>", views.StrainUIDs.as_view()),
     path("strain/<uid>/", views.StrainInstance.as_view()),
+    path("strain/<uid>/active_spawns/", views.StrainActiveSpawns.as_view()),
     path("strain/<uid>/active_spawns/<ISO8601DateTime:timestamp>", views.StrainActiveSpawns.as_view()),
+    path("strain/<uid>/active_substrates/", views.StrainActiveSubstrates.as_view()),
     path("strain/<uid>/active_substrates/<ISO8601DateTime:timestamp>", views.StrainActiveSubstrates.as_view()),
 
     path("spawn/", views.SpawnUIDs.as_view()),

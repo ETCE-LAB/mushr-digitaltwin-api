@@ -489,6 +489,33 @@ does not exist")
                                         timestamp=timestamp))
 
 
+class GrowChamberActiveSubstrateContainers(APIView):
+    def yield_uids(self, gc_uid, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now().astimezone()
+
+        gc = GrowChamber.nodes.get_or_none(uid=gc_uid)
+        if not gc:
+            raise drf_exceptions.NotFound(f"GrowChamber(uid={gc_uid})\
+does not exist")
+
+        for substrate_container in gc.get_active_substrate_containers(
+                timestamp):
+            yield substrate_container.uid
+
+    @swagger_auto_schema(responses={
+        200:
+        "List[<uid:string>] representing MushR SubstrateContainer Node UIDs",
+        404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, timestamp=None, **kwargs):
+        """Returns a list of active SubstrateContainer UIDs which are
+        located at GrowChamber.
+
+        """
+        return Response(self.yield_uids(uid,
+                                        timestamp=timestamp))
+
+
 class CreateSpawn(MushRNodeBaseAPIView):
     @property
     def mushr_model(self):

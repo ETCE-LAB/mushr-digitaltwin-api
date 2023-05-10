@@ -268,6 +268,9 @@ class GrowChamber(Location):
             WHERE (gc.uid = $uid)
             AND (R.start <= $timestamp)
             AND (NOT exists(R.end) or R.end > $timestamp)
+            WITH s, gc, max(R.start) as maxstart
+            MATCH (s)-[R:IS_SENSING_IN]->(gc)
+            WHERE R.start=maxstart
             RETURN s""",
             {"uid": self.uid,
              "timestamp": timestamp.timestamp()},
@@ -279,6 +282,28 @@ class GrowChamber(Location):
     @property
     def current_sensors(self):
         return self.sensors_at_timestamp(timestamp=currenttime())
+
+    def get_active_substrate_containers(self, timestamp):
+        """Returns a list of SubstrateContainers that are located at
+        `self` at `timestamp`"""
+
+        substrate_containers, meta = db.cypher_query(
+            """MATCH (subc:SubstrateContainer)-[R:IS_LOCATED_AT]->(gc:GrowChamber)
+            WHERE gc.uid = $uid
+            AND R.start <= $timestamp
+            AND (NOT exists (R.end) OR R.end >= $timestamp)
+            WITH subc, gc, max(R.start) as maxstart
+            MATCH (subc)-[R:IS_LOCATED_AT]->(gc)
+            WHERE R.start=maxstart
+            RETURN subc
+            """,
+            {"uid": self.uid,
+             "timestamp": timestamp.timestamp()},
+            retry_on_session_expire=True,
+            resolve_objects=True)
+
+        return [substrate_container[0]
+                for substrate_container in substrate_containers]
 
 
 class StorageLocation(Location):
@@ -334,6 +359,7 @@ class Strain(MyceliumSample):
             """MATCH
 (n:Strain)<-[rels:IS_INNOCULATED_FROM*]-(s:Spawn)-[r:IS_CONTAINED_BY]->(:SpawnContainer)
             WHERE n.uid=$uid AND all(r IN rels WHERE r.timestamp <= $timestamp)
+            AND r.start <= $timestamp
             AND (NOT exists (r.end) OR r.end >= $timestamp)
             return s""",
             {"uid": self.uid,
@@ -355,6 +381,7 @@ class Strain(MyceliumSample):
             """MATCH
 (n:Strain)<-[rels:IS_INNOCULATED_FROM*]-(s:Substrate)-[r:IS_CONTAINED_BY]->(:SubstrateContainer)
             WHERE n.uid=$uid AND all(r IN rels WHERE r.timestamp <= $timestamp)
+            AND r.start <= $timestamp
             AND (NOT exists (r.end) OR r.end >= $timestamp)
             return s""",
             {"uid": self.uid,
