@@ -325,6 +325,48 @@ class Strain(MyceliumSample):
                                    "IS_LOCATED_AT",
                                    model=IsLocatedAt)
 
+    def get_active_spawns(self, timestamp):
+        """Returns a list of Spawns which are descendents of `self`
+        that are active on or before `timestamp`
+
+        """
+        spawns, meta = db.cypher_query(
+            """MATCH
+(n:Strain)<-[rels:IS_INNOCULATED_FROM*]-(s:Spawn)-[r:IS_CONTAINED_BY]->(:SpawnContainer)
+            WHERE n.uid=$uid AND all(r IN rels WHERE r.timestamp <= $timestamp)
+            AND (NOT exists (r.end) OR r.end >= $timestamp)
+            return s""",
+            {"uid": self.uid,
+             "timestamp": timestamp.timestamp()},
+            retry_on_session_expire=True,
+            resolve_objects=True)
+
+        if spawns:
+            spawns = [spawn[0] for spawn in spawns]
+
+        return spawns
+
+    def get_active_substrates(self, timestamp):
+        """Returns a list of Substrates which are descendents of
+        `self` that are active on or before `timestamp`
+
+        """
+        substrates, meta = db.cypher_query(
+            """MATCH
+(n:Strain)<-[rels:IS_INNOCULATED_FROM*]-(s:Substrate)-[r:IS_CONTAINED_BY]->(:SubstrateContainer)
+            WHERE n.uid=$uid AND all(r IN rels WHERE r.timestamp <= $timestamp)
+            AND (NOT exists (r.end) OR r.end >= $timestamp)
+            return s""",
+            {"uid": self.uid,
+             "timestamp": timestamp.timestamp()},
+            retry_on_session_expire=True,
+            resolve_objects=True)
+
+        if substrates:
+            substrates = [substrate[0] for substrate in substrates]
+
+        return substrates
+
 
 class SpawnContainer(DjangoNode):
     """Class that contains all the abstractions for the

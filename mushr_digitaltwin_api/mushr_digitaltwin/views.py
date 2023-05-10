@@ -437,6 +437,58 @@ class InnoculatedSpawnUIDs(SpawnUIDs):
         return (super().get(request, timestamp))
 
 
+class StrainActiveSpawns(APIView):
+    def yield_uids(self, strain_uid, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now().astimezone()
+
+        strain = Strain.nodes.get_or_none(uid=strain_uid)
+        if not strain:
+            raise drf_exceptions.NotFound(f"Strain(uid={strain_uid})\
+does not exist")
+
+        for spawn in strain.get_active_spawns(
+                timestamp):
+            yield spawn.uid
+
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Spawn Node UIDs",
+        404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, timestamp=None, **kwargs):
+        """Returns a list of active spawn UIDs which are descendents
+        of this Strain
+
+        """
+        return Response(self.yield_uids(uid,
+                                        timestamp=timestamp))
+
+
+class StrainActiveSubstrates(APIView):
+    def yield_uids(self, strain_uid, timestamp):
+        if not timestamp:
+            timestamp = datetime.datetime.now().astimezone()
+
+        strain = Strain.nodes.get_or_none(uid=strain_uid)
+        if not strain:
+            raise drf_exceptions.NotFound(f"Strain(uid={strain_uid})\
+does not exist")
+
+        for substrate in strain.get_active_substrates(
+                timestamp):
+            yield substrate.uid
+
+    @swagger_auto_schema(responses={
+        200: "List[<uid:string>] representing MushR Substrate Node UIDs",
+        404: drf_openapi_serializers.ErrorResponse404Serializer})
+    def get(self, request, uid, timestamp=None, **kwargs):
+        """Returns a list of active substrate UIDs which are descendents
+        of this Strain
+
+        """
+        return Response(self.yield_uids(uid,
+                                        timestamp=timestamp))
+
+
 class CreateSpawn(MushRNodeBaseAPIView):
     @property
     def mushr_model(self):
@@ -530,6 +582,7 @@ class StrainInstance(MushRInstance):
             404: drf_openapi_serializers.ErrorResponse404Serializer})
     def put(self, request, uid, **kwargs):
         return super().put(request, uid, **kwargs)
+
 
 
 class CreateStrainInstance(MushRNodeCreationAPIView):
@@ -873,6 +926,8 @@ class ActiveSubstrateUIDs(SubstrateUIDs):
 
         """
         return (super().get(request, timestamp))
+
+
 
 
 class InnoculableSubstrateUIDs(SubstrateUIDs):
