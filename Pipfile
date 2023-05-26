@@ -18,6 +18,8 @@ django-cors-headers = "*"
 drf-yasg = {extras = ["validation"], version = "*"}
 drf-standardized-errors = "*"
 django-oauth-toolkit = "*"
+uvicorn = "*"
+gunicorn = "*"
 
 [dev-packages]
 

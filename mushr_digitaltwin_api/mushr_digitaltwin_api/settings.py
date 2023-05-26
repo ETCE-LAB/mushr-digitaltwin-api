@@ -26,7 +26,7 @@ SECRET_KEY = os.environ["SECRET_KEY"]
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(" ")
 
 # Get NEO4J database connection URL
 
@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "drf_standardized_errors",
     "rest_framework",
     "corsheaders",
+    "oauth2_provider",
     "django_neomodel",
     "mushr_digitaltwin"
 ]
@@ -58,7 +59,6 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "corsheaders.middleware.CorsPostCsrfMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -149,3 +149,7 @@ SESSION_COOKIE_SECURE = True
 
 # SECURE_HSTS_SECONDS = 31536000
 # SECURE_SSL_REDIRECT = True # Might not be necessary if deployed with a reverse-proxy
+
+# DJANGO_OAUTH_TOOLKIT
+
+LOGIN_URL = "/admin/login/"

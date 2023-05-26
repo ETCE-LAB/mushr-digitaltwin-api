@@ -1,0 +1,15 @@
+[Unit]
+Description=Gunicorn service for mushr-digitaltwin-api
+After=network.target
+
+[Service]
+WorkingDirectory=/home/test/mushr-digitaltwin-api/mushr_digitaltwin_api
+# Environment=SECRET_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # change this
+# Environment=ALLOWED_HOSTS="localhost 127.0.0.1" # Space delimited list of hostnames
+Environment="PYTHONPATH='/home/test/.local/share/virtualenvs/mushr-digitaltwin-api-XRyr2hQ3/lib/python3.9/site-packages'"
+Environment="NEO4J_BOLT_URL=bolt+s://neo4j:neo4j@localhost:7687/dbname"
+ExecStart=/home/test/.local/share/virtualenvs/mushr-digitaltwin-api-XRyr2hQ3/bin/python manage.py runserver
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
