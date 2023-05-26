@@ -64,12 +64,19 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+OAUTH2_PROVIDER = {
+    # this is the list of available scopes
+    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'}
+}
+
 REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-    ]
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    )
 }
 
 ROOT_URLCONF = "mushr_digitaltwin_api.urls"
@@ -158,3 +165,19 @@ SESSION_COOKIE_SECURE = True
 # DJANGO_OAUTH_TOOLKIT
 
 LOGIN_URL = "/admin/login/"
+
+# SWAGGER SETTINGS
+
+SWAGGER_SETTINGS = {
+   'USE_SESSION_AUTH': True,
+   'SECURITY_DEFINITIONS': {
+      'MushR DigitalTwin API - Swagger': {
+         'type': 'oauth2',
+         'authorizationUrl': '/o/authorize',
+         'tokenUrl': '/o/token/',
+         'flow': 'password',
+         'scopes': {'read': 'Read scope', 'write': 'Write scope'# , 'groups': 'Access to your groups'
+                    }
+      }
+   }
+}
