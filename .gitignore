@@ -1,3 +1,4 @@
 /Pipfile.lock
 /mushr_digitaltwin_api/*.sqlite3
 /docs/build/*
+/mushr_digitaltwin_api/static/
