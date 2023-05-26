@@ -17,6 +17,7 @@ twisted = {extras = ["http2", "tls"], version = "*"}
 django-cors-headers = "*"
 drf-yasg = {extras = ["validation"], version = "*"}
 drf-standardized-errors = "*"
+django-oauth-toolkit = "*"
 
 [dev-packages]
 
