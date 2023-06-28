@@ -984,8 +984,9 @@ class Substrate(DjangoNode):
 
         if strains:
             strains = [strain[0] for strain in strains]
-
-        return strains[0]
+            return strains[0]
+        else:
+            return None
 
     @property
     def container(self):

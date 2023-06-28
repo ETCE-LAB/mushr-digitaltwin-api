@@ -32,6 +32,47 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 
 
+class MushRNodes(APIView):
+
+    @property
+    def mushr_model(self):
+        return None
+
+    # Since some models do not use "dateCreated" for indicating when
+    # the node was created, these need to be handled differently
+
+    def yield_nodes(self, timestamp):
+
+        if not timestamp:
+            timestamp = datetime.datetime.now().astimezone()
+        try:
+
+            if self.mushr_model == Flush:
+                instances = Flush.fruiting_flushes(timestamp=timestamp)
+            elif self.mushr_model == MushroomHarvest:
+                instances = self.mushr_model.nodes.filter(
+                    dateHarvested__lte=timestamp)
+            else:
+                instances = self.mushr_model.nodes.filter(
+                    dateCreated__lte=timestamp)
+            for instance in instances:
+                serializer = MushRNodeBaseAPIView.serializer_map[self.mushr_model](instance)
+                yield serializer.data
+
+        except (self.mushr_model.DoesNotExist):
+            raise drf_exceptions.NotFound()
+
+    @swagger_auto_schema(responses={
+        200: "List[] of MushR Nodes"})
+    def get(self, request, timestamp=None):
+        """Returns a List of all MushR Nodes that were created on or
+        before ISO 8601 `timestamp`. If `timestamp` is not specified,
+        then current system time is assumed.
+
+        """
+        return Response(self.yield_nodes(timestamp))
+
+
 class MushRNodeUIDs(APIView):
 
     @property
@@ -220,6 +261,12 @@ class LocationUIDs(MushRNodeUIDs):
         return Location
 
 
+class LocationNodes(MushRNodes):
+    @property
+    def mushr_model(self):
+        return Location
+
+
 class LocationInstance(MushRInstance):
     @property
     def mushr_model(self):
@@ -242,6 +289,12 @@ class LocationInstance(MushRInstance):
 
 
 class GrowChamberUIDs(MushRNodeUIDs):
+    @property
+    def mushr_model(self):
+        return GrowChamber
+
+
+class GrowChamberNodes(MushRNodes):
     @property
     def mushr_model(self):
         return GrowChamber
@@ -288,6 +341,12 @@ class StorageLocationUIDs(MushRNodeUIDs):
         return StorageLocation
 
 
+class StorageLocationNodes(MushRNodes):
+    @property
+    def mushr_model(self):
+        return StorageLocation
+
+
 class StorageLocationInstance(MushRInstance):
     @property
     def mushr_model(self):
@@ -329,6 +388,12 @@ class MyceliumSampleUIDs(MushRNodeUIDs):
         return MyceliumSample
 
 
+class MyceliumSampleNodes(MushRNodes):
+    @property
+    def mushr_model(self):
+        return MyceliumSample
+
+
 class MyceliumSampleInstance(MushRInstance):
     @property
     def mushr_model(self):
@@ -351,6 +416,12 @@ class MyceliumSampleInstance(MushRInstance):
 
 
 class SpawnUIDs(MushRNodeUIDs):
+    @property
+    def mushr_model(self):
+        return Spawn
+
+
+class SpawnNodes(MushRNodes):
     @property
     def mushr_model(self):
         return Spawn
@@ -590,6 +661,12 @@ class StrainUIDs(MushRNodeUIDs):
         return Strain
 
 
+class StrainNodes(MushRNodes):
+    @property
+    def mushr_model(self):
+        return Strain
+
+
 class StrainInstance(MushRInstance):
     @property
     def mushr_model(self):
@@ -627,6 +704,12 @@ class CreateStrainInstance(MushRNodeCreationAPIView):
 
 
 class SpawnContainerUIDs(MushRNodeUIDs):
+    @property
+    def mushr_model(self):
+        return SpawnContainer
+
+
+class SpawnContainerNodes(MushRNodes):
     @property
     def mushr_model(self):
         return SpawnContainer
@@ -760,6 +843,12 @@ does not exist)")
 
 
 class SubstrateContainerUIDs(MushRNodeUIDs):
+    @property
+    def mushr_model(self):
+        return SubstrateContainer
+
+
+class SubstrateContainerNodes(MushRNodes):
     @property
     def mushr_model(self):
         return SubstrateContainer
@@ -914,6 +1003,12 @@ class SubstrateUIDs(MushRNodeUIDs):
         return Substrate
 
 
+class SubstrateNodes(MushRNodes):
+    @property
+    def mushr_model(self):
+        return Substrate
+
+
 class SubstrateInstance(MushRInstance):
     @property
     def mushr_model(self):
@@ -953,8 +1048,6 @@ class ActiveSubstrateUIDs(SubstrateUIDs):
 
         """
         return (super().get(request, timestamp))
-
-
 
 
 class InnoculableSubstrateUIDs(SubstrateUIDs):
@@ -1071,6 +1164,12 @@ class FruitingHoleUIDs(MushRNodeUIDs):
         return FruitingHole
 
 
+class FruitingHoleNodes(MushRNodes):
+    @property
+    def mushr_model(self):
+        return FruitingHole
+
+
 class FruitingHoleInstance(MushRInstance):
     @property
     def mushr_model(self):
@@ -1163,6 +1262,12 @@ class FlushUIDs(MushRNodeUIDs):
         return Flush
 
 
+class FlushNodes(MushRNodes):
+    @property
+    def mushr_model(self):
+        return Flush
+
+
 class FlushInstance(MushRInstance):
     @property
     def mushr_model(self):
@@ -1190,6 +1295,12 @@ class MushroomHarvestUIDs(MushRNodeUIDs):
         return MushroomHarvest
 
 
+class MushroomHarvestNodes(MushRNodes):
+    @property
+    def mushr_model(self):
+        return MushroomHarvest
+
+
 class MushroomHarvestInstance(MushRInstance):
     @property
     def mushr_model(self):
@@ -1212,6 +1323,12 @@ class MushroomHarvestInstance(MushRInstance):
 
 
 class SensorUIDs(MushRNodeUIDs):
+    @property
+    def mushr_model(self):
+        return Sensor
+
+
+class SensorNodes(MushRNodes):
     @property
     def mushr_model(self):
         return Sensor
