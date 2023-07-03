@@ -85,8 +85,6 @@ mycodo uses (You probably have to use `sudo`):
 
 ## Clone This repository
 
-Change this to public gitlab link when project is ready
-
     git clone https://github.com/ETCE-LAB/mushr-digitaltwin-api.git
 
 
