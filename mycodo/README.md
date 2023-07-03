@@ -125,3 +125,11 @@ done in two places:
 
 ## Import MushR Widgets
 
+1. To
+   [import](https://kizniche.github.io/Mycodo/Configuration-Settings/#widget-settings)
+   a widget, upload the required widget file, e.g., [to create new
+   substrate](widgets/substrate/mushr_substrate_create.py)
+2. Add the widget to a dashboard.
+3. Widgets that end with *_view.py will additionally require you to
+   enter the neo4j database url, username and password in the widget
+   settings menu.
