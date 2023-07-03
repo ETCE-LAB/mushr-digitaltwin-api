@@ -1,0 +1,28 @@
+<form id='myForm'>
+  <label for='storagelocationname'>Name:</label><br>
+  <input type='text' id='storagelocationname' name='storagelocationname'><br>
+  <label for='storagelocationdescription'>Description:</label><br>
+  <textarea id='storagelocationdescription' name='storagelocationdescription'></textarea><br><br>
+  <input type='button' value='Submit' onclick='submitForm()'>
+</form>
+    <div id="status"></div>
+<script>
+function submitForm() {
+  // Get the values of the form elements
+  var name = document.getElementById('storagelocationname').value;
+  var description = document.getElementById('storagelocationdescription').value;
+
+  // Create an AJAX request
+  var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/mushr_storage_create/'+encodeURIComponent(name)+'/'+encodeURIComponent(description), true);
+  xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+  xhr.onreadystatechange = () => {
+    if (xhr.response.success)
+       document.getElementById('status').innerHTML='<div class="alert alert-success">'+xhr.response+'</div>';
+    else
+       document.getElementById('status').innerHTML='<div class="alert alert-danger">'+xhr.response+'</div>';
+    }
+  xhr.send();
+}
+
+</script>

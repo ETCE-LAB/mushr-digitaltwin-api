@@ -1,0 +1,32 @@
+<form id='myForm'>
+  <label for='substrate_container_name'>Name:</label><br>
+  <input type='text' id='substrate_container_name' name='substrate_container_name'><br>
+  <label for='substrate_container_description'>Description:</label><br>
+  <textarea id='substrate_container_description' name='substrate_container_description'></textarea>
+  <label for='fruiting_hole_count'>No. of Fruiting Holes</label><br>
+  <input type='number' id='fruiting_hole_count' name='fruiting_hole_count'><br>
+  <br><br>
+  <input type='button' value='Submit' onclick='submitForm()'>
+</form>
+    <div id="status"></div>
+<script>
+function submitForm() {
+  // Get the values of the form elements
+  var name = document.getElementById('substrate_container_name').value;
+  var description = document.getElementById('substrate_container_description').value;
+  var fh = document.getElementById('fruiting_hole_count').value;
+
+  // Create an AJAX request
+  var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/mushr_substrate_container_create/'+encodeURIComponent(name)+'/'+encodeURIComponent(description)+'/'+encodeURIComponent(fh), true);
+  xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+  xhr.onreadystatechange = () => {
+    if (xhr.response.success)
+       document.getElementById('status').innerHTML='<div class="alert alert-success">'+xhr.response+'</div>';
+    else
+       document.getElementById('status').innerHTML='<div class="alert alert-danger">'+xhr.response+'</div>';
+    }
+  xhr.send();
+}
+
+</script>

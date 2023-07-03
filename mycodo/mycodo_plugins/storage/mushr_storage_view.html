@@ -1,0 +1,65 @@
+<style type="text/css">
+  #viz_storage {
+      width: {{widget_options['view_width']}}px;
+      height: {{widget_options['view_height']}}px;
+      border: 1px solid lightgray;
+      font: 22pt arial;
+  }
+</style>
+<script src="https://unpkg.com/neovis.js@2.0.2"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script type="text/javascript">
+  var viz_storage;
+  function draw_storage() {
+      var config = {
+	  containerId: "viz_storage",
+	  neo4j: {
+	      serverUrl: "{{widget_options['neo4j_host_url']}}",
+	      serverUser: "{{widget_options['neo4j_username']}}",
+	      serverPassword: "{{widget_options['neo4j_password']}}"
+	  },
+	  visConfig: {
+	      edges: {
+		  arrows: {to: {enabled:true}}
+	      }
+	  },
+	  labels: {
+	      Storage: {
+		  label: "name",
+
+		  [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+		      static: {
+		      },
+		      function: {
+			  title: NeoVis.objectToTitleHtml
+		      },
+		  }
+	      }
+	  },
+	  initialCypher: "MATCH (n:StorageLocation) RETURN n"
+      };
+
+      viz_storage = new NeoVis.default(config);
+      viz_storage.render();
+  }
+  draw_storage();
+</script>
+  <div id="viz_storage"></div>
+  <textarea rows="1" cols=50 id="cypher_storage" placeholder="Cypher Query"></textarea><br>
+  <input type="submit" value="Submit" id="reload">
+  <input type="submit" value="Stabilize" id="stabilize">
+<script>
+  $("#reload").click(function () {
+      var cypher = $("#cypher").val();
+      if (cypher.length > 3) {
+	  viz.renderWithCypher(cypher);
+      } else {
+	  console.log("reload");
+	  viz.reload();
+      }
+  });
+
+  $("#stabilize").click(function () {
+      viz.stabilize();
+  })
+</script>

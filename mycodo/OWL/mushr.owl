@@ -1,0 +1,246 @@
+@prefix : <http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18> .
+
+<http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18> rdf:type owl:Ontology .
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#allows_fruiting_of
+:allows_fruiting_of rdf:type owl:ObjectProperty ;
+                    rdfs:subPropertyOf :is_location_of ;
+                    owl:inverseOf :fruits_through ;
+                    rdfs:domain :FruitingHole ;
+                    rdfs:range :Flush .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#fruits_from
+:fruits_from rdf:type owl:ObjectProperty ;
+             rdfs:subPropertyOf :is_descendent_of ;
+             owl:inverseOf :is_source_of ;
+             rdfs:domain :Flush ;
+             rdfs:range :Substrate .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#fruits_through
+:fruits_through rdf:type owl:ObjectProperty ;
+                rdfs:subPropertyOf :is_located_at ;
+                rdfs:domain :Flush ;
+                rdfs:range :FruitingHole .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_ancestor_of
+:is_ancestor_of rdf:type owl:ObjectProperty ;
+                rdfs:subPropertyOf owl:topObjectProperty ;
+                owl:inverseOf :is_descendent_of ;
+                rdf:type owl:TransitiveProperty .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_composed_of
+:is_composed_of rdf:type owl:ObjectProperty ;
+                rdfs:subPropertyOf :is_location_of ;
+                owl:inverseOf :is_part_of ;
+                rdfs:domain :SubstrateContainer ;
+                rdfs:range :FruitingHole .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_contained_by
+:is_contained_by rdf:type owl:ObjectProperty ;
+                 rdfs:subPropertyOf :is_located_at ;
+                 owl:inverseOf :is_container_of ;
+                 rdfs:domain :Spawn ,
+                             :Substrate ;
+                 rdfs:range :SpawnContainer ,
+                            :SubstrateContainer .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_container_of
+:is_container_of rdf:type owl:ObjectProperty ;
+                 rdfs:subPropertyOf :is_location_of ;
+                 rdfs:domain :SpawnContainer ,
+                             :SubstrateContainer ;
+                 rdfs:range :Spawn ,
+                            :Substrate .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_descendent_of
+:is_descendent_of rdf:type owl:ObjectProperty ;
+                  rdfs:subPropertyOf owl:topObjectProperty ;
+                  rdf:type owl:TransitiveProperty ;
+                  rdfs:domain :Flush ,
+                              :MushroomHarvest ,
+                              :Spawn ,
+                              :Substrate ;
+                  rdfs:range :Flush ,
+                             :Spawn ,
+                             :Strain ,
+                             :Substrate .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_harvest_source_of
+:is_harvest_source_of rdf:type owl:ObjectProperty ;
+                      rdfs:subPropertyOf :is_ancestor_of ;
+                      owl:inverseOf :is_harvested_from ;
+                      rdfs:domain :Flush ;
+                      rdfs:range :MushroomHarvest .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_harvested_from
+:is_harvested_from rdf:type owl:ObjectProperty ;
+                   rdfs:subPropertyOf :is_descendent_of ;
+                   rdfs:domain :MushroomHarvest ;
+                   rdfs:range :Flush .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_innoculant_for
+:is_innoculant_for rdf:type owl:ObjectProperty ;
+                   rdfs:subPropertyOf :is_ancestor_of ;
+                   owl:inverseOf :is_innoculated_from ;
+                   rdfs:domain :Spawn ,
+                               :Strain ;
+                   rdfs:range :Spawn ,
+                              :Substrate .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_innoculated_from
+:is_innoculated_from rdf:type owl:ObjectProperty ;
+                     rdfs:subPropertyOf :is_descendent_of ;
+                     rdfs:domain :Spawn ,
+                                 :Substrate ;
+                     rdfs:range :Spawn ,
+                                :Strain .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_located_at
+:is_located_at rdf:type owl:ObjectProperty ;
+               owl:inverseOf :is_location_of ;
+               rdf:type owl:TransitiveProperty ;
+               rdfs:domain :Flush ,
+                           :FruitingHole ,
+                           :Spawn ,
+                           :SpawnContainer ,
+                           :Substrate ,
+                           :SubstrateContainer ;
+               rdfs:range :FruitingHole ,
+                          :SpawnContainer ,
+                          :SubstrateContainer .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_location_of
+:is_location_of rdf:type owl:ObjectProperty ;
+                rdfs:subPropertyOf owl:topObjectProperty ;
+                rdf:type owl:TransitiveProperty ;
+                rdfs:domain :FruitingHole ,
+                            :SpawnContainer ,
+                            :SubstrateContainer ;
+                rdfs:range :Flush ,
+                           :FruitingHole ,
+                           :Spawn ,
+                           :Substrate .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_part_of
+:is_part_of rdf:type owl:ObjectProperty ;
+            rdfs:subPropertyOf :is_located_at ;
+            rdfs:domain :FruitingHole ;
+            rdfs:range :SubstrateContainer .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_source_of
+:is_source_of rdf:type owl:ObjectProperty ;
+              rdfs:subPropertyOf :is_ancestor_of ;
+              rdfs:domain :Substrate ;
+              rdfs:range :Flush .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_temporal_location_of
+:is_temporal_location_of rdf:type owl:ObjectProperty ;
+                         rdfs:subPropertyOf :is_location_of ;
+                         rdfs:range :SpawnContainer ,
+                                    :SubstrateContainer .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#is_temporally_located_at
+:is_temporally_located_at rdf:type owl:ObjectProperty ;
+                          rdfs:subPropertyOf :is_located_at ;
+                          rdfs:domain :SpawnContainer ,
+                                      :SubstrateContainer .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#pointed_by
+:pointed_by rdf:type owl:ObjectProperty ;
+            owl:inverseOf :points_to ;
+            rdfs:domain :Location .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#points_to
+:points_to rdf:type owl:ObjectProperty ;
+           rdfs:range :Location .
+
+
+#################################################################
+#    Data properties
+#################################################################
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#timestamp
+:timestamp rdf:type owl:DatatypeProperty ;
+           rdfs:range xsd:dateTimeStamp .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#Flush
+:Flush rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#FruitingHole
+:FruitingHole rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#GrowChamber
+:GrowChamber rdf:type owl:Class ;
+             rdfs:subClassOf :Location .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#Location
+:Location rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#MushroomHarvest
+:MushroomHarvest rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#Spawn
+:Spawn rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#SpawnContainer
+:SpawnContainer rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#StorageLocation
+:StorageLocation rdf:type owl:Class ;
+                 rdfs:subClassOf :Location .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#Strain
+:Strain rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#Substrate
+:Substrate rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/anant/ontologies/2022/10/untitled-ontology-18#SubstrateContainer
+:SubstrateContainer rdf:type owl:Class .
+
+
+###  Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi

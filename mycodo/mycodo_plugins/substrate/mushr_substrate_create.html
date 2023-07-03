@@ -1,0 +1,35 @@
+<form id='myForm'>
+  <label for='substrate_weight'>Weight:</label><br>
+  <input type='number' id='substrate_weight' name='substrate_weight'><br>
+  <label for='substrate_composition'>Composition:</label><br>
+  <textarea id='substrate_composition' name='substrate_composition'></textarea>
+  <label for='substrate_innoculant_uid'>Innoculant UID</label><br>
+  <input type='text' id='substrate_innoculant_uid' name='substrate_innoculat_uid'><br>
+  <label for='substrate_container_uid'>Container UID</label><br>
+  <input type='text' id='substrate_container_uid' name='substrate_container_uid'><br>
+  <br><br>
+  <input type='button' value='Submit' onclick='submitForm()'>
+</form>
+    <div id="status"></div>
+<script>
+function submitForm() {
+  // Get the values of the form elements
+  var weight = document.getElementById('substrate_weight').value;
+  var composition = document.getElementById('substrate_composition').value;
+  var innoculant_uid = document.getElementById('innoculant_uid').value;
+  var substrate_container_uid = document.getElementById('substrate_container_uid').value;
+
+  // Create an AJAX request
+  var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/mushr_substrate_create/'+encodeURIComponent(weight)+'/'+encodeURIComponent(composition)+'/'+encodeURIComponent(innoculant_uid)+'/'+encodeURIComponent(substrate_container_uid), true);
+  xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+  xhr.onreadystatechange = () => {
+    if (xhr.response.success)
+       document.getElementById('status').innerHTML='<div class="alert alert-success">'+xhr.response+'</div>';
+    else
+       document.getElementById('status').innerHTML='<div class="alert alert-danger">'+xhr.response+'</div>';
+    }
+  xhr.send();
+}
+
+</script>
