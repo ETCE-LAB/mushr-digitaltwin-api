@@ -54,9 +54,9 @@ Framework](https://www.django-rest-framework.org/).
   ```
   
 ### Usage 
-
-
-#### Development Server
+#### Create a Django User
+#### Running the Server
+##### Development Server
 
 1. Set `DEBUG = True` in [settings.py](mushr_digitaltwin_api/mushr_digitaltwin_api/mushr_digitaltwin_api/settings.py), otherwise static files will not be hosted by the development server
 
@@ -70,7 +70,7 @@ Framework](https://www.django-rest-framework.org/).
 
 	```
 	
-### Production Server
+##### Production Server
 
    1. Ensure that `DEBUG=False` in
       [settings.py](mushr_digitaltwin_api/mushr_digitaltwin_api/mushr_digitaltwin_api/settings.py)
@@ -91,4 +91,7 @@ Framework](https://www.django-rest-framework.org/).
    5. Deploy the Django project using your favourite [web
       server](https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/)
       (both `uvicorn` and `gunicorn` webservers have been tested and
-      are already added as dependencies in the Pipfile)
+      are already added as dependencies in the 
+
+#### Create and use Oauth2.0 API Keys
+Please refer to the [official documentation of the django-oauth-toolkit](https://django-oauth-toolkit.readthedocs.io/en/latest/rest-framework/getting_started.html#step-3-register-an-application).
