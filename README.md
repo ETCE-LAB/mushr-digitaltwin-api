@@ -93,5 +93,5 @@ Framework](https://www.django-rest-framework.org/).
       (both `uvicorn` and `gunicorn` webservers have been tested and
       are already added as dependencies in the 
 
-#### Create and use Oauth2.0 API Keys
+#### Create and use Oauth2.0 access tokens
 Please refer to the [official documentation of the django-oauth-toolkit](https://django-oauth-toolkit.readthedocs.io/en/latest/rest-framework/getting_started.html#step-3-register-an-application).
